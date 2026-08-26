@@ -1,0 +1,20 @@
+{
+  "resourceType": "ValueSet",
+  "status": "draft",
+  "name": "MedicationCodeVS",
+  "id": "medication-code",
+  "title": "Medication code (PRK or HPK)",
+  "description": "Product code levels accepted for current medication. Send one level throughout: the level of the first entry is the one declared upstream for the whole list.",
+  "version": "0.1.0",
+  "url": "http://digitalis.nl/fhir/ValueSet/medication-code",
+  "compose": {
+    "include": [
+      {
+        "system": "urn:oid:2.16.840.1.113883.2.4.4.10"
+      },
+      {
+        "system": "urn:oid:2.16.840.1.113883.2.4.4.7"
+      }
+    ]
+  }
+}

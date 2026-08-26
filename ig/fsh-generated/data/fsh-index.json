@@ -1,0 +1,258 @@
+[
+  {
+    "outputFile": "Bundle-ExampleResultBundle.json",
+    "fshName": "ExampleResultBundle",
+    "fshType": "Instance",
+    "fshFile": "examples.fsh",
+    "startLine": 114,
+    "endLine": 125
+  },
+  {
+    "outputFile": "CodeSystem-gstandaard-bijzonder-kenmerk.json",
+    "fshName": "GStandaardBijzonderKenmerk",
+    "fshType": "CodeSystem",
+    "fshFile": "terminology.fsh",
+    "startLine": 62,
+    "endLine": 71
+  },
+  {
+    "outputFile": "CodeSystem-gstandaard-contraindicatie.json",
+    "fshName": "GStandaardContraIndicatie",
+    "fshType": "CodeSystem",
+    "fshFile": "terminology.fsh",
+    "startLine": 52,
+    "endLine": 58
+  },
+  {
+    "outputFile": "CodeSystem-gstandaard-oggrp.json",
+    "fshName": "GStandaardOggrp",
+    "fshType": "CodeSystem",
+    "fshFile": "terminology.fsh",
+    "startLine": 44,
+    "endLine": 50
+  },
+  {
+    "outputFile": "CodeSystem-gstandaard-snk.json",
+    "fshName": "GStandaardSnk",
+    "fshType": "CodeSystem",
+    "fshFile": "terminology.fsh",
+    "startLine": 36,
+    "endLine": 42
+  },
+  {
+    "outputFile": "CodeSystem-gstandaard-ssk.json",
+    "fshName": "GStandaardSsk",
+    "fshType": "CodeSystem",
+    "fshFile": "terminology.fsh",
+    "startLine": 28,
+    "endLine": 34
+  },
+  {
+    "outputFile": "Parameters-ExampleFormularySessionInput.json",
+    "fshName": "ExampleFormularySessionInput",
+    "fshType": "Instance",
+    "fshFile": "examples.fsh",
+    "startLine": 51,
+    "endLine": 74
+  },
+  {
+    "outputFile": "Parameters-ExampleSessionOutput.json",
+    "fshName": "ExampleSessionOutput",
+    "fshType": "Instance",
+    "fshFile": "examples.fsh",
+    "startLine": 76,
+    "endLine": 84
+  },
+  {
+    "outputFile": "StructureDefinition-ext-Dosage.CodedDirections.json",
+    "fshName": "CodedDirections",
+    "fshType": "Extension",
+    "fshFile": "extensions.fsh",
+    "startLine": 10,
+    "endLine": 21
+  },
+  {
+    "outputFile": "StructureDefinition-ext-MedicationRequest.OpiumActClassification.json",
+    "fshName": "OpiumActClassification",
+    "fshType": "Extension",
+    "fshFile": "extensions.fsh",
+    "startLine": 23,
+    "endLine": 35
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-Advice.json",
+    "fshName": "FhirHubAdvice",
+    "fshType": "Profile",
+    "fshFile": "profiles-output.fsh",
+    "startLine": 63,
+    "endLine": 75
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-AllergyIntolerance.json",
+    "fshName": "FhirHubAllergyIntolerance",
+    "fshType": "Profile",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 52,
+    "endLine": 63
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-Condition.json",
+    "fshName": "FhirHubCondition",
+    "fshType": "Profile",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 65,
+    "endLine": 75
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-CreateRxSessionInput.json",
+    "fshName": "FhirHubCreateRxSessionInput",
+    "fshType": "Profile",
+    "fshFile": "profiles-parameters.fsh",
+    "startLine": 121,
+    "endLine": 127
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-FormularySessionInput.json",
+    "fshName": "FhirHubFormularySessionInput",
+    "fshType": "Profile",
+    "fshFile": "profiles-parameters.fsh",
+    "startLine": 109,
+    "endLine": 119
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-LabObservation.json",
+    "fshName": "FhirHubLabObservation",
+    "fshType": "Profile",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 91,
+    "endLine": 106
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-MedicationStatement.json",
+    "fshName": "FhirHubMedicationStatement",
+    "fshType": "Profile",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 77,
+    "endLine": 89
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-Patient.json",
+    "fshName": "FhirHubPatient",
+    "fshType": "Profile",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 38,
+    "endLine": 50
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-Prescription.json",
+    "fshName": "FhirHubPrescription",
+    "fshType": "Profile",
+    "fshFile": "profiles-output.fsh",
+    "startLine": 36,
+    "endLine": 61
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-PrescriptionInput.json",
+    "fshName": "FhirHubPrescriptionInput",
+    "fshType": "Profile",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 108,
+    "endLine": 122
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-ResultBundle.json",
+    "fshName": "FhirHubResultBundle",
+    "fshType": "Profile",
+    "fshFile": "profiles-output.fsh",
+    "startLine": 16,
+    "endLine": 34
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-SessionInput.json",
+    "fshName": "FhirHubSessionInput",
+    "fshType": "Profile",
+    "fshFile": "profiles-parameters.fsh",
+    "startLine": 28,
+    "endLine": 107
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-SessionOutput.json",
+    "fshName": "FhirHubSessionOutput",
+    "fshType": "Profile",
+    "fshFile": "profiles-parameters.fsh",
+    "startLine": 129,
+    "endLine": 152
+  },
+  {
+    "outputFile": "ValueSet-allergy-causative-agent.json",
+    "fshName": "AllergyCausativeAgentVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 87,
+    "endLine": 94
+  },
+  {
+    "outputFile": "ValueSet-contra-indication.json",
+    "fshName": "ContraIndicationVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 96,
+    "endLine": 102
+  },
+  {
+    "outputFile": "ValueSet-dispensed-medication-code.json",
+    "fshName": "DispensedMedicationCodeVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 112,
+    "endLine": 120
+  },
+  {
+    "outputFile": "ValueSet-icpc-1-nl.json",
+    "fshName": "IcpcVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 122,
+    "endLine": 127
+  },
+  {
+    "outputFile": "ValueSet-medication-code.json",
+    "fshName": "MedicationCodeVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 104,
+    "endLine": 110
+  },
+  {
+    "outputFile": "ValueSet-nhg-tabel-45.json",
+    "fshName": "LabDeterminationVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 129,
+    "endLine": 134
+  },
+  {
+    "outputFile": "ValueSet-opium-act-classification.json",
+    "fshName": "OpiumActVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 136,
+    "endLine": 141
+  },
+  {
+    "outputFile": "ValueSet-patient-gender.json",
+    "fshName": "PatientGenderVS",
+    "fshType": "ValueSet",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 17,
+    "endLine": 24
+  },
+  {
+    "outputFile": "ValueSet-prescription-input-medication.json",
+    "fshName": "PrescriptionInputMedicationVS",
+    "fshType": "ValueSet",
+    "fshFile": "profiles-input.fsh",
+    "startLine": 124,
+    "endLine": 131
+  }
+]

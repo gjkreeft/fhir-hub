@@ -1,0 +1,80 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-ResultBundle",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle",
+  "version": "0.1.0",
+  "name": "FhirHubResultBundle",
+  "title": "$session-result output",
+  "status": "draft",
+  "description": "The finished session: zero or more prescriptions and zero or more advice texts. An empty Bundle is a valid answer — the care provider may have prescribed nothing.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Bundle",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Bundle",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Bundle.type",
+        "path": "Bundle.type",
+        "comment": "A collection, not a searchset: this is not the result of a search and has no paging.",
+        "fixedCode": "collection"
+      },
+      {
+        "id": "Bundle.entry",
+        "path": "Bundle.entry",
+        "slicing": {
+          "discriminator": [
+            {
+              "type": "type",
+              "path": "resource"
+            }
+          ],
+          "rules": "closed"
+        },
+        "comment": "Store this when you receive it. $session-result ends the session upstream, so a second call returns 401 and nothing can be re-fetched."
+      },
+      {
+        "id": "Bundle.entry:prescription",
+        "path": "Bundle.entry",
+        "sliceName": "prescription",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Bundle.entry:prescription.resource",
+        "path": "Bundle.entry.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "MedicationRequest",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Bundle.entry:advice",
+        "path": "Bundle.entry",
+        "sliceName": "advice",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Bundle.entry:advice.resource",
+        "path": "Bundle.entry.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Communication",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

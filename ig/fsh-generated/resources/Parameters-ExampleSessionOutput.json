@@ -1,0 +1,19 @@
+{
+  "resourceType": "Parameters",
+  "id": "ExampleSessionOutput",
+  "meta": {
+    "profile": [
+      "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionOutput"
+    ]
+  },
+  "parameter": [
+    {
+      "name": "sessionId",
+      "valueString": "sess-abc-123"
+    },
+    {
+      "name": "url",
+      "valueUrl": "https://alfa.prescriptor-test.nl/api/prescriptor/session/sess-abc-123"
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+package nl.digitalis.fhirhub.prescriptor;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
+import nl.digitalis.fhirhub.Fixtures;
+import nl.digitalis.fhirhub.model.CodedItem;
+import nl.digitalis.fhirhub.model.LabResult;
+import java.math.BigDecimal;
+
+import nl.digitalis.fhirhub.model.DrugCode;
+import nl.digitalis.fhirhub.model.ExistingPrescription;
+import nl.digitalis.fhirhub.model.MedicationCodes;
+import nl.digitalis.fhirhub.model.PatientContext;
+import nl.digitalis.fhirhub.model.SessionRequest;
+import nl.digitalis.fhirhub.model.SessionType;
+
+class XmlRpcRequestBuilderTest {
+
+	private final XmlRpcRequestBuilder builder = new XmlRpcRequestBuilder();
+
+	@Test
+	void buildsAnOpenSessionCall() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("<methodName>openSession</methodName>");
+		assertThat(xml).contains("<name>SearchKey</name><value><string>A01</string></value>");
+		assertThat(xml).contains("<dateTime.iso8601>19800101T12:00:00</dateTime.iso8601>");
+		assertThat(xml).contains("<name>PracticeID</name><value><string>practice-123</string></value>");
+		assertThat(xml).contains("<name>LicenseKey</name><value><string>license-key</string></value>");
+	}
+
+	@Test
+	void createRxCallOmitsTheSearchKey() {
+		SessionRequest request = new SessionRequest(
+				SessionType.CREATE_RX, null, Fixtures.patient(), "https://someurl.example/done",
+				Fixtures.XIS, null);
+
+		String xml = builder.openSession(request, Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("<methodName>createPrescription</methodName>");
+		assertThat(xml).doesNotContain("SearchKey");
+	}
+
+	@Test
+	void routesAllergiesAndContraIndicationsByCodeSystem() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(between(xml, "<name>Allergies</name>", "</member>")).contains("77").doesNotContain("10499");
+		assertThat(between(xml, "<name>AlStam</name>", "</member>")).contains("10499").doesNotContain("77");
+		// AlStof is the SSK member. json-interface always sent it empty, dropping SSK codes
+		// before they reached allergy checking; prescriptor-api reads it as SSK.
+		assertThat(between(xml, "<name>AlStof</name>", "</member>")).contains("3204").doesNotContain("10499");
+		assertThat(between(xml, "<name>Contraindications_ICPC</name>", "</member>")).contains("A01");
+		assertThat(between(xml, "<name>Contraindications_Z_Index</name>", "</member>")).contains("228");
+	}
+
+	/**
+	 * The predecessor interpolated these values into an XML template unescaped, so a single
+	 * ampersand produced a malformed request and caller-supplied text could inject markup.
+	 */
+	@Test
+	void escapesMarkupInCallerSuppliedValues() {
+		PatientContext patient = new PatientContext(
+				"F",
+				LocalDate.of(1980, 1, 1),
+				List.of(new CodedItem("SNK", "a&b")),
+				List.of(),
+				List.of(),
+				List.of(new LabResult("GLUC", "B", "", LocalDate.of(2024, 7, 4), "<10 & \"low\"")));
+
+		SessionRequest request = new SessionRequest(
+				SessionType.FORMULARY, "A01", patient, "https://x.example/?a=1&b=2", Fixtures.XIS, null);
+
+		String xml = builder.openSession(request, Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("a&amp;b");
+		assertThat(xml).contains("https://x.example/?a=1&amp;b=2");
+		// The lab value lives in an attribute of the embedded document, inside CDATA.
+		assertThat(xml).contains("&lt;10 &amp; &quot;low&quot;");
+		assertThat(xml).doesNotContain("value=\"<10");
+	}
+
+	@Test
+	void embedsTheDigitalisRxDocumentInCdata() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("<name>PresPlus</name>");
+		assertThat(xml).contains("<![CDATA[");
+		assertThat(xml).contains("<DigitalisRx>");
+		assertThat(xml).contains("<GStandaard SNK=\"10499\"");
+		assertThat(xml).contains("<NHG date=\"2024-07-04\" memo=\"ALDO\"");
+	}
+
+	/**
+	 * The medication block feeds Prescriptor's medication surveillance. PRK and GPK are always
+	 * present; HPK only when the host identified the drug at that level.
+	 */
+	@Test
+	void writesResolvedCurrentMedication() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of(
+				new MedicationCodes(18996, 1234, null),
+				new MedicationCodes(2106, 5678, 999)));
+
+		assertThat(xml).contains("<drug pending=\"false\"><GStandaard PRK=\"18996\" GPK=\"1234\"");
+		assertThat(xml).contains("<drug pending=\"false\"><GStandaard PRK=\"2106\" GPK=\"5678\" HPK=\"999\"");
+	}
+
+	@Test
+	void writesAnEmptyMedicationBlockWhenThePatientUsesNothing() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("<medication></medication>");
+		assertThat(xml).doesNotContain("<drug");
+	}
+
+	/** Populated since v2; the JSON interface sent this element empty until then. */
+	@Test
+	void writesTheOrganisationIntoXisInfo() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains(
+				"<licenseKey password=\"license-key\" organisationUnitId=\"practice-123\" key=\"license-key\"");
+	}
+
+	/**
+	 * MedicationType declares the level the patient's current medication is supplied at. It was
+	 * hardcoded to 9 before v2; now it follows the data, and is 0 when there is none.
+	 */
+	@Test
+	void derivesMedicationTypeFromTheFirstCurrentMedication() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>9</int>");
+	}
+
+	@Test
+	void declaresMedicationTypeSevenForHpk() {
+		PatientContext patient = new PatientContext(
+				"F", LocalDate.of(1980, 1, 1), List.of(), List.of(),
+				List.of(new CodedItem("HPK", "2106")), List.of());
+
+		String xml = builder.openSession(
+				new SessionRequest(SessionType.FORMULARY, "A01", patient, "https://x.example/d",
+						Fixtures.XIS, null),
+				Fixtures.CREDENTIALS, List.of());
+
+		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>7</int>");
+	}
+
+	@Test
+	void declaresMedicationTypeZeroWhenThePatientUsesNothing() {
+		PatientContext patient = new PatientContext(
+				"F", LocalDate.of(1980, 1, 1), List.of(), List.of(), List.of(), List.of());
+
+		String xml = builder.openSession(
+				new SessionRequest(SessionType.FORMULARY, "A01", patient, "https://x.example/d",
+						Fixtures.XIS, null),
+				Fixtures.CREDENTIALS, List.of());
+
+		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>0</int>");
+	}
+
+	/** An existing prescription handed to CreateRx for editing; new in v2. */
+	@Test
+	void writesAnExistingPrescription() {
+		ExistingPrescription prescription = new ExistingPrescription(
+				List.of(new DrugCode("PRK", 18996, "PARACETAMOL ZETPIL 1000MG", null, null, null)),
+				"N02BE01",
+				new BigDecimal("15"),
+				"ST",
+				"3-4D1S; gedurende max. 1 maand");
+
+		String xml = builder.openSession(
+				new SessionRequest(SessionType.CREATE_RX, null, Fixtures.patient(), "https://x.example/d",
+						Fixtures.XIS, prescription),
+				Fixtures.CREDENTIALS, List.of());
+
+		String member = between(xml, "<name>Prescription</name>", "<name>Authorization</name>");
+		assertThat(member).contains("<name>DrugCodePRK</name><value><string>18996</string>");
+		assertThat(member).contains("<name>CodedDirection</name><value><string>3-4D1S; gedurende max. 1 maand</string>");
+		assertThat(member).contains("<name>SupplyUnit</name><value><string>ST</string>");
+		assertThat(member).contains("<name>ATC</name><value><string>N02BE01</string>");
+		assertThat(member).contains("<name>NumbersSupplied</name><value><double>15</double>");
+		assertThat(member).contains("<name>PrescriptionType</name><value><int>9</int>");
+	}
+
+	@Test
+	void omitsThePrescriptionMemberWhenThereIsNone() {
+		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).doesNotContain("<name>Prescription</name>");
+	}
+
+	@Test
+	void buildsARequestResultCall() {
+		String xml = builder.requestResult("sess-abc-123");
+
+		assertThat(xml).contains("<methodName>requestResult</methodName>");
+		assertThat(xml).contains("<name>PrescriptorSessionKey</name><value><string>sess-abc-123</string></value>");
+	}
+
+	private String between(String haystack, String start, String end) {
+		int from = haystack.indexOf(start);
+		assertThat(from).as("expected to find %s", start).isNotNegative();
+
+		return haystack.substring(from, haystack.indexOf(end, from));
+	}
+}

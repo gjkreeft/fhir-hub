@@ -1,0 +1,69 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-PrescriptionInput",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput",
+  "version": "0.1.0",
+  "name": "FhirHubPrescriptionInput",
+  "title": "fhir-hub prescription input",
+  "status": "draft",
+  "description": "A prescription the host already holds, handed to $createrx-session to open for editing. The mirror image of what $session-result returns, so a host can hand back a prescription it received earlier without reshaping it.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "MedicationRequest",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/MedicationRequest",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "MedicationRequest.medication[x]",
+        "path": "MedicationRequest.medication[x]",
+        "short": "PRK or HPK, optionally with an ATC",
+        "type": [
+          {
+            "code": "CodeableConcept"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-product-code",
+            "severity": "error",
+            "human": "At least one coding must be a PRK or an HPK: an ATC alone cannot be dispensed against.",
+            "expression": "coding.where(system = 'urn:oid:2.16.840.1.113883.2.4.4.10' or system = 'urn:oid:2.16.840.1.113883.2.4.4.7').exists()",
+            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+          }
+        ],
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/prescription-input-medication"
+        }
+      },
+      {
+        "id": "MedicationRequest.dosageInstruction.extension:codedDirections",
+        "path": "MedicationRequest.dosageInstruction.extension",
+        "sliceName": "codedDirections",
+        "short": "The NHG Tabel 25 instruction, read in preference to Dosage.text",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "Extension",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "MedicationRequest.dosageInstruction.text",
+        "path": "MedicationRequest.dosageInstruction.text",
+        "comment": "Used only when the CodedDirections extension is absent."
+      },
+      {
+        "id": "MedicationRequest.dispenseRequest.quantity",
+        "path": "MedicationRequest.dispenseRequest.quantity",
+        "comment": "Quantity.code is read in preference to Quantity.unit."
+      }
+    ]
+  }
+}

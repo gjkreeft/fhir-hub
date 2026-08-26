@@ -1,0 +1,100 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-SessionOutput",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionOutput",
+  "version": "0.1.0",
+  "name": "FhirHubSessionOutput",
+  "title": "Session output",
+  "status": "draft",
+  "description": "What both session operations return: the launch URL and the session id the host later polls with.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Parameters",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Parameters",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Parameters.parameter",
+        "path": "Parameters.parameter",
+        "slicing": {
+          "discriminator": [
+            {
+              "type": "value",
+              "path": "name"
+            }
+          ],
+          "rules": "closed"
+        },
+        "min": 2
+      },
+      {
+        "id": "Parameters.parameter:sessionId",
+        "path": "Parameters.parameter",
+        "sliceName": "sessionId",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:sessionId.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "sessionId"
+      },
+      {
+        "id": "Parameters.parameter:sessionId.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "comment": "fhir-hub keeps no session store, so persist this yourself. It cannot be re-fetched.",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:sessionId.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:sessionId.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:url",
+        "path": "Parameters.parameter",
+        "sliceName": "url",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:url.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "url"
+      },
+      {
+        "id": "Parameters.parameter:url.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "comment": "Redirect the care provider's browser here.",
+        "min": 1,
+        "type": [
+          {
+            "code": "url"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:url.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:url.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      }
+    ]
+  }
+}

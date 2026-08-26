@@ -1,0 +1,17 @@
+prescriptor:
+  # Overridden per test by the WireMock port; this value only has to be a valid URL.
+  target-url: http://localhost:1/xmlrpc_dispatch.php
+
+logging:
+  level:
+    nl.digitalis.fhirhub: DEBUG
+
+gstandaard:
+  datasource:
+    # H2 in place of the G-Standaard database; the medcode view is created by the init script.
+    url: "jdbc:h2:mem:gstandaard;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'classpath:gstandaard-medcode.sql'"
+    username: sa
+    password: ""
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 0

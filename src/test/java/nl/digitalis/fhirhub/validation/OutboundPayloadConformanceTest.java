@@ -1,0 +1,80 @@
+package nl.digitalis.fhirhub.validation;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.hl7.fhir.r4.model.Bundle;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ResultSeverityEnum;
+import ca.uhn.fhir.validation.ValidationOptions;
+import ca.uhn.fhir.validation.ValidationResult;
+import nl.digitalis.fhirhub.fhir.Profiles;
+import nl.digitalis.fhirhub.fhir.ResultBundleMapper;
+import nl.digitalis.fhirhub.model.AdviceResult;
+import nl.digitalis.fhirhub.model.Directions;
+import nl.digitalis.fhirhub.model.DrugCode;
+import nl.digitalis.fhirhub.model.DrugResult;
+import nl.digitalis.fhirhub.model.SessionResult;
+
+/**
+ * What this service <em>emits</em> has to satisfy its own published profile.
+ *
+ * <p>Inbound payloads are validated at runtime; outbound ones are not, because that would put
+ * the reference validator in the path of every response for a payload this service built
+ * itself. This test is where that gap is closed instead.
+ *
+ * <p>It is not hypothetical. Until the profiles were written, every Bundle fhir-hub returned
+ * was invalid FHIR: {@code Bundle.entry.fullUrl} is mandatory for anything that is not a
+ * transaction or a batch, and nothing set it. No test noticed, because every assertion was
+ * about the contents of the entries rather than the shape of the Bundle.
+ */
+@SpringBootTest
+class OutboundPayloadConformanceTest {
+
+	@Autowired
+	private FhirValidator validator;
+
+	@Autowired
+	private ResultBundleMapper mapper;
+
+	@Test
+	void theResultBundleSatisfiesItsProfile() {
+		Bundle bundle = mapper.toBundle(new SessionResult(
+				List.of(paracetamol()),
+				List.of(new AdviceResult("Neem in met voldoende water.", false),
+						new AdviceResult("https://www.thuisarts.nl/koorts", true))));
+
+		assertThat(errorsIn(bundle)).isEmpty();
+	}
+
+	/** A care provider may prescribe nothing, and an empty Bundle must still be conformant. */
+	@Test
+	void anEmptyResultBundleSatisfiesItsProfile() {
+		assertThat(errorsIn(mapper.toBundle(new SessionResult(List.of(), List.of())))).isEmpty();
+	}
+
+	private List<String> errorsIn(Bundle bundle) {
+		ValidationResult result = validator.validateWithResult(bundle,
+				new ValidationOptions().addProfile(Profiles.RESULT_BUNDLE));
+
+		return result.getMessages().stream()
+				.filter(message -> message.getSeverity() == ResultSeverityEnum.ERROR
+						|| message.getSeverity() == ResultSeverityEnum.FATAL)
+				.map(message -> message.getLocationString() + ": " + message.getMessage())
+				.toList();
+	}
+
+	private DrugResult paracetamol() {
+		return new DrugResult(
+				List.of(new DrugCode("PRK", 18996, "PARACETAMOL ZETPIL 1000MG",
+						new BigDecimal("15"), "ST",
+						new Directions("tabel25", "3-4D1S", "3 tot 4 maal daags 1 zetpil"))),
+				7, true, "PARACETAMOL ZETPIL 1000MG", "N02BE01");
+	}
+}

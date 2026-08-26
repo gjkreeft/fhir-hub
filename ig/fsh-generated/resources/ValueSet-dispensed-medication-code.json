@@ -1,0 +1,26 @@
+{
+  "resourceType": "ValueSet",
+  "status": "draft",
+  "name": "DispensedMedicationCodeVS",
+  "id": "dispensed-medication-code",
+  "title": "Prescribed medication code (PRK, GPK, HPK or ATC)",
+  "description": "Codings that may appear on a MedicationRequest returned by $session-result. PRK and GPK are always present as a pair; HPK and ATC appear when the upstream supplies them.",
+  "version": "0.1.0",
+  "url": "http://digitalis.nl/fhir/ValueSet/dispensed-medication-code",
+  "compose": {
+    "include": [
+      {
+        "system": "urn:oid:2.16.840.1.113883.2.4.4.10"
+      },
+      {
+        "system": "urn:oid:2.16.840.1.113883.2.4.4.1"
+      },
+      {
+        "system": "urn:oid:2.16.840.1.113883.2.4.4.7"
+      },
+      {
+        "system": "http://www.whocc.no/atc"
+      }
+    ]
+  }
+}

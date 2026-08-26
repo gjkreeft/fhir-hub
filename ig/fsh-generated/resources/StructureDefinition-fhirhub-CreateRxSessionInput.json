@@ -1,0 +1,26 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-CreateRxSessionInput",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-CreateRxSessionInput",
+  "version": "0.1.0",
+  "name": "FhirHubCreateRxSessionInput",
+  "title": "$createrx-session input",
+  "status": "draft",
+  "description": "The body of POST /fhir/$createrx-session. Prescribing without a formulary lookup, optionally starting from a prescription the host already holds.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Parameters",
+  "baseDefinition": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Parameters.parameter:reason",
+        "path": "Parameters.parameter",
+        "sliceName": "reason",
+        "short": "Optional here: CreateRx prescribes without a formulary lookup"
+      }
+    ]
+  }
+}

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>nl.digitalis</groupId>
+	<artifactId>fhir-hub</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+
+	<name>fhir-hub</name>
+	<description>FHIR R4 interface for Digitalis Prescriptor 3</description>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.release>25</maven.compiler.release>
+		<spring.boot.version>4.1.1</spring.boot.version>
+		<hapi.fhir.version>8.10.1</hapi.fhir.version>
+		<junit.version>6.1.3</junit.version>
+		<wiremock.version>3.13.2</wiremock.version>
+		<mariadb.version>3.5.10</mariadb.version>
+		<h2.version>2.4.240</h2.version>
+		<jackson.version>2.22.1</jackson.version>
+	</properties>
+
+	<!--
+		Boot's curated versions, imported for their effect on TRANSITIVE dependencies. This is
+		dependencyManagement only, not the parent POM: the house convention of declaring every
+		direct dependency with its own explicit version is unchanged, and those declarations
+		still win over anything here.
+
+		Without it, Maven arbitrates overlapping transitives by nearest-wins, which silently
+		DOWNGRADES: HAPI FHIR's jakarta.annotation-api 2.1.1 beat Boot's 3.0.0, and httpclient's
+		commons-logging 1.2 beat 1.3.5. The BOM makes one mutually-tested set authoritative
+		instead, and maven-enforcer's requireUpperBoundDeps below fails the build if a downgrade
+		ever reappears.
+	-->
+	<dependencyManagement>
+		<dependencies>
+			<!--
+				Jackson is aligned FIRST, so it wins over Boot's BOM below — the first import of a
+				managed version is the one that applies.
+
+				The highest requirement in the tree sets the version, and it comes from the
+				reference validator: ca.uhn.hapi.fhir:org.hl7.fhir.validation needs
+				jackson-databind 2.22.1, while Boot 4.1.1 manages 2.21.5. Leaving Boot in charge
+				would DOWNGRADE the validator's own dependency, which is the exact failure
+				requireUpperBoundDeps exists to catch — and it did, the moment
+				hapi-fhir-validation was added.
+
+				Boot is not the loser it looks like: spring-boot-starter-jackson is excluded from
+				starter-web, so nothing in this application asks Spring to serialise JSON. Jackson
+				is here for HAPI, which is what the exclusion below already says.
+			-->
+			<dependency>
+				<groupId>com.fasterxml.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>${jackson.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>${spring.boot.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!--
+				Two pins for divergence inside HAPI FHIR's own tree, which Boot's BOM does not
+				cover. hapi-fhir-base is reachable at 8.10.0 as well as 8.10.1, and the
+				OpenTelemetry annotations at 2.26.1 as well as 2.27.0 — where nearest-wins picked
+				the OLDER one. Both are aligned here so one version of each is on the classpath.
+			-->
+			<dependency>
+				<groupId>ca.uhn.hapi.fhir</groupId>
+				<artifactId>hapi-fhir-base</artifactId>
+				<version>${hapi.fhir.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.opentelemetry.instrumentation</groupId>
+				<artifactId>opentelemetry-instrumentation-annotations</artifactId>
+				<version>2.27.0</version>
+			</dependency>
+
+			<!--
+				Reachable at three versions once the validator and its Caffeine cache are on the
+				tree — 2.49.0 via caffeine, 2.41.0 via gson, 2.26.1 via guava — and nearest-wins
+				picked 2.41.0, below what caffeine asks for. Compile-time annotations only, so
+				nothing would have broken at runtime; pinned anyway, because the alternative is
+				teaching people to wave the enforcer through.
+			-->
+			<dependency>
+				<groupId>com.google.errorprone</groupId>
+				<artifactId>error_prone_annotations</artifactId>
+				<version>2.49.0</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+			<version>${spring.boot.version}</version>
+			<exclusions>
+				<!--
+					Jackson is taken from exactly one place: HAPI FHIR, which pins its own version
+					and serialises every /fhir/* response. Letting Boot's starter add a second
+					Jackson would put two versions of the same artifacts in the tree for Maven to
+					arbitrate. Nothing here needs Spring to serialise JSON.
+				-->
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-jackson</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+			<version>${spring.boot.version}</version>
+		</dependency>
+
+		<!-- JdbcTemplate and the Hikari pool behind GStandaardJdbcConfig. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
+			<version>${spring.boot.version}</version>
+		</dependency>
+
+		<!-- HAPI FHIR: R4 model, parsers, and the annotation-driven plain server -->
+		<dependency>
+			<groupId>ca.uhn.hapi.fhir</groupId>
+			<artifactId>hapi-fhir-structures-r4</artifactId>
+			<version>${hapi.fhir.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ca.uhn.hapi.fhir</groupId>
+			<artifactId>hapi-fhir-server</artifactId>
+			<version>${hapi.fhir.version}</version>
+		</dependency>
+
+		<!--
+			Runtime validation of the payloads against the profiles in ig/. This is the module
+			that pulls in org.hl7.fhir.* — the reference validator — so it is by far the heaviest
+			thing on the classpath; see FhirValidationConfig for what that costs.
+		-->
+		<dependency>
+			<groupId>ca.uhn.hapi.fhir</groupId>
+			<artifactId>hapi-fhir-validation</artifactId>
+			<version>${hapi.fhir.version}</version>
+		</dependency>
+
+		<!--
+			The R4 core conformance resources — the StructureDefinitions for Parameters, Bundle,
+			Patient and the rest — ship separately from the model classes. Without this,
+			DefaultProfileValidationSupport resolves nothing at all (fetchAllStructureDefinitions
+			returns 0), and the first request dies with "HAPI-0705: Unknown base definition:
+			.../Parameters" while trying to snapshot a profile whose base cannot be found.
+		-->
+		<dependency>
+			<groupId>ca.uhn.hapi.fhir</groupId>
+			<artifactId>hapi-fhir-validation-resources-r4</artifactId>
+			<version>${hapi.fhir.version}</version>
+		</dependency>
+
+		<!--
+			HAPI resolves its cache implementation through a ServiceLoader and ships none by
+			default: CachingValidationSupport throws "HAPI-2200: No Cache Service Providers found"
+			at construction without this. Caffeine is HAPI's own default; the Guava alternative
+			is for Android.
+		-->
+		<dependency>
+			<groupId>ca.uhn.hapi.fhir</groupId>
+			<artifactId>hapi-fhir-caching-caffeine</artifactId>
+			<version>${hapi.fhir.version}</version>
+		</dependency>
+
+
+		<!-- G-Standaard reference lookups run over JDBC; MariaDB in every environment. -->
+		<dependency>
+			<groupId>org.mariadb.jdbc</groupId>
+			<artifactId>mariadb-java-client</artifactId>
+			<version>${mariadb.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<version>${spring.boot.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<version>7.1.1</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.wiremock</groupId>
+			<artifactId>wiremock-standalone</artifactId>
+			<version>${wiremock.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Stands in for the G-Standaard medcode view so tests need no live database. -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>${h2.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<!--
+			Declaring any <resource> replaces the default, so src/main/resources is repeated here.
+			The second entry puts the IG's conformance resources on the classpath for
+			FhirValidationConfig to load. Only StructureDefinition, ValueSet and CodeSystem are
+			taken: the IG also generates the documentation examples, which are not conformance
+			resources and would only be noise in the jar.
+		-->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>ig/fsh-generated/resources</directory>
+				<targetPath>fhir-profiles</targetPath>
+				<includes>
+					<include>StructureDefinition-*.json</include>
+					<include>ValueSet-*.json</include>
+					<include>CodeSystem-*.json</include>
+				</includes>
+			</resource>
+		</resources>
+
+		<plugins>
+			<!--
+				Guards the version coherence the dependencyManagement block above establishes.
+				requireUpperBoundDeps fails the build when Maven resolves an artifact to a LOWER
+				version than some path requires — the silent-downgrade case, which is the one that
+				actually breaks at runtime rather than at build time.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>3.6.2</version>
+				<executions>
+					<execution>
+						<id>enforce-dependency-versions</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireUpperBoundDeps/>
+								<banDuplicatePomDependencyVersions/>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring.boot.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

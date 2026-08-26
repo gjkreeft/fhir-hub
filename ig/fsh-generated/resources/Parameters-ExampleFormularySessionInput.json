@@ -1,0 +1,166 @@
+{
+  "resourceType": "Parameters",
+  "id": "ExampleFormularySessionInput",
+  "meta": {
+    "profile": [
+      "http://digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput"
+    ]
+  },
+  "parameter": [
+    {
+      "name": "patient",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ExamplePatient",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+          ]
+        },
+        "gender": "female",
+        "birthDate": "1980-01-01"
+      }
+    },
+    {
+      "name": "reason",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "system": "urn:oid:2.16.840.1.113883.2.4.4.31.1",
+            "code": "A01"
+          }
+        ]
+      }
+    },
+    {
+      "name": "endSessionUrl",
+      "valueUrl": "https://host.example/done"
+    },
+    {
+      "name": "xisId",
+      "valueString": "xis-001"
+    },
+    {
+      "name": "xisVersion",
+      "valueString": "1.0"
+    },
+    {
+      "name": "allergyIntolerance",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "id": "ExampleAllergy",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
+          ]
+        },
+        "patient": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "code": "active",
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk",
+              "code": "10499"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "condition",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "ExampleContraIndication",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+          ]
+        },
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie",
+              "code": "228"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "medicationStatement",
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "ExampleCurrentMedication",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+          ]
+        },
+        "status": "active",
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
+              "code": "18996"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "observation",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "ExampleLabResult",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
+          ]
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.30.45",
+              "code": "ALDOB"
+            }
+          ]
+        },
+        "effectiveDateTime": "2024-07-04",
+        "valueQuantity": {
+          "value": 10
+        }
+      }
+    }
+  ]
+}

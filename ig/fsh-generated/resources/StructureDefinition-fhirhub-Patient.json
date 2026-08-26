@@ -1,0 +1,42 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-Patient",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Patient",
+  "version": "0.1.0",
+  "name": "FhirHubPatient",
+  "title": "fhir-hub Patient",
+  "status": "draft",
+  "description": "The demographics a session needs. Only gender and birthDate are read; anything else you send is ignored and never forwarded to Prescriptor or stored.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Patient",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Patient",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Patient.name",
+        "path": "Patient.name",
+        "comment": "Not read. No name, identifier or address is forwarded to Prescriptor or stored by fhir-hub."
+      },
+      {
+        "id": "Patient.gender",
+        "path": "Patient.gender",
+        "short": "male, female or unknown",
+        "comment": "Send the sex when you know it. Sex-specific surveillance checks cannot fire on 'unknown', and the prescriber is not told that they were skipped. 'other' is rejected rather than coerced: it is a different assertion from 'unknown', and there is no upstream value for it.",
+        "min": 1,
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/patient-gender"
+        }
+      },
+      {
+        "id": "Patient.birthDate",
+        "path": "Patient.birthDate",
+        "comment": "Used for age-dependent surveillance.",
+        "min": 1
+      }
+    ]
+  }
+}

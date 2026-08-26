@@ -1,0 +1,95 @@
+{
+  "resourceType": "Bundle",
+  "id": "ExampleResultBundle",
+  "meta": {
+    "profile": [
+      "http://digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle"
+    ]
+  },
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:9f1b2d34-5a67-4c89-b012-3456789abcde",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "ExamplePrescription",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
+          ]
+        },
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
+              "code": "18996",
+              "display": "PARACETAMOL TABLET 500MG"
+            },
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.1",
+              "code": "111111"
+            }
+          ],
+          "text": "PARACETAMOL TABLET 500MG"
+        },
+        "dosageInstruction": [
+          {
+            "extension": [
+              {
+                "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+                "valueString": "3-4D1S; gedurende max. 1 maand"
+              }
+            ],
+            "text": "3 tot 4 maal daags 1 stuk; gedurende max. 1 maand"
+          }
+        ],
+        "dispenseRequest": {
+          "quantity": {
+            "value": 15,
+            "system": "urn:oid:2.16.840.1.113883.2.4.4.1.900.2",
+            "code": "ST",
+            "unit": "ST"
+          }
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1c2d3e4f-5678-4a9b-8c0d-1e2f3a4b5c6d",
+      "resource": {
+        "resourceType": "Communication",
+        "id": "ExampleAdvice",
+        "meta": {
+          "profile": [
+            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
+          ]
+        },
+        "status": "completed",
+        "category": [
+          {
+            "coding": [
+              {
+                "code": "instruction",
+                "system": "http://terminology.hl7.org/CodeSystem/communication-category"
+              }
+            ]
+          }
+        ],
+        "payload": [
+          {
+            "contentString": "Neem de tabletten met voldoende water in."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-LabObservation",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation",
+  "version": "0.1.0",
+  "name": "FhirHubLabObservation",
+  "title": "fhir-hub laboratory Observation",
+  "status": "draft",
+  "description": "A laboratory determination, coded with the 8-position NHG Tabel 45 sleutelcode.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Observation",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Observation",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Observation.status",
+        "path": "Observation.status",
+        "comment": "Mandatory in base R4 and not read by fhir-hub."
+      },
+      {
+        "id": "Observation.code",
+        "path": "Observation.code",
+        "short": "One NHG Tabel 45 sleutelcode",
+        "comment": "Send the composite code as ONE coding: memo (positions 1-4), materiaal (5-6) and bijzonderheid (7-8) belong together — the combination is the identity of the determination. Do not split them across three codings or three resources. Codes shorter than 8 positions are padded. Unlike the other systems, the short name is not accepted here.",
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/nhg-tabel-45"
+        }
+      },
+      {
+        "id": "Observation.effective[x]",
+        "path": "Observation.effective[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "dateTime"
+          }
+        ]
+      },
+      {
+        "id": "Observation.value[x]",
+        "path": "Observation.value[x]",
+        "comment": "A Quantity's unit is ignored — the upstream carries no unit — so send the value in the unit the determination is defined in rather than converting. CodeableConcept, Range, Ratio, SampledData and Period are excluded because the mapper reads only a Quantity or a primitive.",
+        "min": 1,
+        "type": [
+          {
+            "code": "Quantity"
+          },
+          {
+            "code": "string"
+          },
+          {
+            "code": "boolean"
+          },
+          {
+            "code": "integer"
+          },
+          {
+            "code": "time"
+          },
+          {
+            "code": "dateTime"
+          }
+        ]
+      }
+    ]
+  }
+}

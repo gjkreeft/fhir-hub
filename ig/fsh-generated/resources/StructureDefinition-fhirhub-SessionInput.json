@@ -1,0 +1,417 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-SessionInput",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
+  "version": "0.1.0",
+  "name": "FhirHubSessionInput",
+  "title": "Session input (shared base)",
+  "status": "draft",
+  "description": "Everything the two session operations have in common. Use FhirHubFormularySessionInput or FhirHubCreateRxSessionInput rather than this directly.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Parameters",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Parameters",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Parameters.parameter",
+        "path": "Parameters.parameter",
+        "slicing": {
+          "discriminator": [
+            {
+              "type": "value",
+              "path": "name"
+            }
+          ],
+          "rules": "closed"
+        },
+        "min": 4
+      },
+      {
+        "id": "Parameters.parameter:patient",
+        "path": "Parameters.parameter",
+        "sliceName": "patient",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:patient.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "patient"
+      },
+      {
+        "id": "Parameters.parameter:patient.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:patient.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Patient",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:patient.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:reason",
+        "path": "Parameters.parameter",
+        "sliceName": "reason",
+        "min": 0,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:reason.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "reason"
+      },
+      {
+        "id": "Parameters.parameter:reason.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "short": "ICPC-1 NL",
+        "comment": "A bare Coding is not accepted: OperationDefinition.parameter.type is a single code, so this parameter cannot be both described and polymorphic.",
+        "min": 1,
+        "type": [
+          {
+            "code": "CodeableConcept"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-icpc-shape",
+            "severity": "error",
+            "human": "An ICPC-1 NL code is a letter and two digits, optionally followed by a dot and two more (A01, U71.01).",
+            "expression": "coding.where(system = 'urn:oid:2.16.840.1.113883.2.4.4.31.1').all(code.matches('^[A-Z][0-9]{2}(\\\\.[0-9]{2})?$'))",
+            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+          }
+        ],
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/icpc-1-nl"
+        }
+      },
+      {
+        "id": "Parameters.parameter:reason.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:reason.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:endSessionUrl",
+        "path": "Parameters.parameter",
+        "sliceName": "endSessionUrl",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:endSessionUrl.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "endSessionUrl"
+      },
+      {
+        "id": "Parameters.parameter:endSessionUrl.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "short": "Where Prescriptor returns the browser",
+        "min": 1,
+        "type": [
+          {
+            "code": "url"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-http-url",
+            "severity": "error",
+            "human": "Only http and https are accepted: the care provider's browser is redirected here, so a custom scheme such as an app deep link is rejected rather than forwarded.",
+            "expression": "$this.matches('^https?://')",
+            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:endSessionUrl.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:endSessionUrl.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisId",
+        "path": "Parameters.parameter",
+        "sliceName": "xisId",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:xisId.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "xisId"
+      },
+      {
+        "id": "Parameters.parameter:xisId.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "short": "Your system id; identifies your product, not the practice",
+        "comment": "Keep it stable across releases and move only xisVersion. Never forwarded to Prescriptor: it exists so a log line can be attributed to a supplier and a release.",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-non-blank",
+            "severity": "error",
+            "human": "Must contain at least one non-whitespace character.",
+            "expression": "$this.matches('[^\\\\s]')",
+            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:xisId.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisId.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion",
+        "path": "Parameters.parameter",
+        "sliceName": "xisVersion",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "xisVersion"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-non-blank",
+            "severity": "error",
+            "human": "Must contain at least one non-whitespace character.",
+            "expression": "$this.matches('[^\\\\s]')",
+            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance",
+        "path": "Parameters.parameter",
+        "sliceName": "allergyIntolerance",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "allergyIntolerance"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "AllergyIntolerance",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:condition",
+        "path": "Parameters.parameter",
+        "sliceName": "condition",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:condition.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "condition"
+      },
+      {
+        "id": "Parameters.parameter:condition.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:condition.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Condition",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:condition.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement",
+        "path": "Parameters.parameter",
+        "sliceName": "medicationStatement",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "medicationStatement"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "MedicationStatement",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:observation",
+        "path": "Parameters.parameter",
+        "sliceName": "observation",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:observation.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "observation"
+      },
+      {
+        "id": "Parameters.parameter:observation.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:observation.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Observation",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:observation.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:prescription",
+        "path": "Parameters.parameter",
+        "sliceName": "prescription",
+        "min": 0,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:prescription.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "prescription"
+      },
+      {
+        "id": "Parameters.parameter:prescription.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:prescription.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "MedicationRequest",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:prescription.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      }
+    ]
+  }
+}

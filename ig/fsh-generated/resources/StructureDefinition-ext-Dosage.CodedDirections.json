@@ -1,0 +1,55 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "ext-Dosage.CodedDirections",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+  "version": "0.1.0",
+  "name": "CodedDirections",
+  "title": "Coded directions (NHG Tabel 25)",
+  "status": "draft",
+  "description": "The NHG Tabel 25 coded usage instruction, verbatim, e.g. '3-4D1S; gedurende max. 1 maand'.",
+  "purpose": "FHIR models dosing structurally (Dosage.timing, Dosage.doseAndRate) and has no slot for a compact coded string. HL7 NL registers OIDs for Tabel 25 components — tijdseenheden 2.16.840.1.113883.2.4.4.3, aanvullende teksten 2.16.840.1.113883.2.4.4.5 — but not for the composite string.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Dosage"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Coded directions (NHG Tabel 25)",
+        "definition": "The NHG Tabel 25 coded usage instruction, verbatim, e.g. '3-4D1S; gedurende max. 1 maand'."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "short": "The coded instruction, passed through undecoded",
+        "comment": "Authoritative in both directions: fhir-hub writes it and reads it back, so a host that edits the dosing must edit this, not Dosage.text. No timing or doseAndRate is derived from it — an earlier version did, and it was lossy.",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

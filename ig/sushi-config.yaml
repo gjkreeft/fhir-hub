@@ -1,0 +1,16 @@
+# The canonical matches the URLs the running service already emits — see
+# fhir/DigitalisExtensions.java and fhir/CodeSystemRegistry.java. Changing it would
+# invalidate every extension URL fhir-hub has ever put on the wire.
+id: nl.digitalis.fhirhub
+canonical: http://digitalis.nl/fhir
+name: DigitalisFhirHub
+title: "Digitalis fhir-hub Implementation Guide"
+description: "FHIR R4 conformance artifacts for the Prescriptor 3 interface: the payloads of $formulary-session, $createrx-session and $session-result."
+status: draft
+version: 0.1.0
+fhirVersion: 4.0.1
+copyrightYear: 2026+
+releaseLabel: ci-build
+publisher:
+  name: Digitalis
+FSHOnly: true

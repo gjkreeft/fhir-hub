@@ -1,0 +1,23 @@
+{
+  "resourceType": "ValueSet",
+  "status": "draft",
+  "name": "AllergyCausativeAgentVS",
+  "id": "allergy-causative-agent",
+  "title": "Allergy causative agent (SSK, SNK, OGGrp)",
+  "description": "Causative agents fhir-hub routes to Prescriptor. Which member carries which subsystem is set by prescriptor-api's OpenSessionRequestBuilder.getAllergies.",
+  "version": "0.1.0",
+  "url": "http://digitalis.nl/fhir/ValueSet/allergy-causative-agent",
+  "compose": {
+    "include": [
+      {
+        "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-ssk"
+      },
+      {
+        "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk"
+      },
+      {
+        "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-oggrp"
+      }
+    ]
+  }
+}

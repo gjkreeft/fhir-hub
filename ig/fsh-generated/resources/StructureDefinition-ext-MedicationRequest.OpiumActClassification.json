@@ -1,0 +1,59 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "ext-MedicationRequest.OpiumActClassification",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification",
+  "version": "0.1.0",
+  "name": "OpiumActClassification",
+  "title": "Opiumwet classification",
+  "status": "draft",
+  "description": "Opiumwet classification of the prescribed product, as a G-Standaard bijzonder kenmerk.",
+  "purpose": "Carried as a CodeableConcept rather than a boolean because codes 2 ('in volle omvang') and 65 ('afhandeling als UR') have materially different consequences for a pharmacist, and a boolean flattens that away.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "MedicationRequest"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Opiumwet classification",
+        "definition": "Opiumwet classification of the prescribed product, as a G-Standaard bijzonder kenmerk."
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "short": "The Opiumwet code; absent when the product does not fall under the Opiumwet",
+        "comment": "Prescriptor reports only a yes/no today, which corresponds to rubriek 72 nr 2, so only code 2 is emitted. Codes 65 and 107 become available without a breaking change if the upstream is enriched.",
+        "min": 1,
+        "type": [
+          {
+            "code": "CodeableConcept"
+          }
+        ],
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/opium-act-classification"
+        }
+      }
+    ]
+  }
+}

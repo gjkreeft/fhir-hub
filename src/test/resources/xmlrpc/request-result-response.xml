@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+        <array>
+          <data>
+            <value>
+              <struct>
+                <member><name>AdviceType</name><value><string>Prescription</string></value></member>
+                <member><name>PrescriptionType</name><value><string>9</string></value></member>
+                <member><name>DrugCodePRK</name><value><string>18996</string></value></member>
+                <member><name>DrugNamePRK</name><value><string>PARACETAMOL ZETPIL 1000MG</string></value></member>
+                <member><name>DrugName</name><value><string>PARACETAMOL ZETPIL 1000MG</string></value></member>
+                <member><name>NumbersSupplied</name><value><string>15</string></value></member>
+                <member><name>SupplyUnit</name><value><string>ST</string></value></member>
+                <member><name>SupplyDuration</name><value><string>4</string></value></member>
+                <member><name>CodedDirection</name><value><string>3-4D1S; gedurende max. 1 maand</string></value></member>
+                <member><name>UserDirection</name><value><string>3-4 keer per dag 1 zetpil gedurende max. 1 maand</string></value></member>
+                <member><name>Opium</name><value><string>N</string></value></member>
+                <member><name>ATC</name><value><string>N02BE01</string></value></member>
+              </struct>
+            </value>
+            <value>
+              <struct>
+                <member><name>AdviceType</name><value><string>Prescription</string></value></member>
+                <member><name>PrescriptionType</name><value><string>7</string></value></member>
+                <member><name>DrugCodeHPK</name><value><string>2106</string></value></member>
+                <member><name>DrugNameHPK</name><value><string>OXYCODON HCL TABLET 5MG</string></value></member>
+                <member><name>DrugName</name><value><string>OXYCODON HCL TABLET 5MG</string></value></member>
+                <member><name>NumbersSupplied</name><value><string>30</string></value></member>
+                <member><name>SupplyUnit</name><value><string>ST</string></value></member>
+                <member><name>SupplyDuration</name><value><string>10</string></value></member>
+                <member><name>CodedDirection</name><value><string>3D1T</string></value></member>
+                <member><name>UserDirection</name><value><string>3 keer per dag 1 tablet</string></value></member>
+                <member><name>Opium</name><value><string>Y</string></value></member>
+                <member><name>ATC</name><value><string>N02AA05</string></value></member>
+              </struct>
+            </value>
+            <value>
+              <struct>
+                <member><name>AdviceType</name><value><string>Patient</string></value></member>
+                <member><name>PatientAdvice</name><value><string>bij chronische pijn: spreid de activiteiten over de dag &amp; zoek afleiding</string></value></member>
+              </struct>
+            </value>
+            <value>
+              <struct>
+                <member><name>AdviceType</name><value><string>Patient</string></value></member>
+                <member><name>PatientAdvice</name><value><string>https://www.thuisarts.nl/pijn-en-pijnstillers/ik-heb-pijn</string></value></member>
+              </struct>
+            </value>
+          </data>
+        </array>
+      </value>
+    </param>
+  </params>
+</methodResponse>

@@ -1,0 +1,41 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-AllergyIntolerance",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance",
+  "version": "0.1.0",
+  "name": "FhirHubAllergyIntolerance",
+  "title": "fhir-hub AllergyIntolerance",
+  "status": "draft",
+  "description": "A known hypersensitivity, coded in a G-Standaard subsystem Prescriptor routes.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "AllergyIntolerance",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/AllergyIntolerance",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "AllergyIntolerance.clinicalStatus",
+        "path": "AllergyIntolerance.clinicalStatus",
+        "comment": "Required by the base R4 invariant ait-1 whenever verificationStatus is not entered-in-error, and not read by fhir-hub."
+      },
+      {
+        "id": "AllergyIntolerance.code",
+        "path": "AllergyIntolerance.code",
+        "short": "SSK, SNK or OGGrp",
+        "comment": "The first coding in a routed system wins; codings in other systems are ignored. A resource with no routed coding at all is a 400.",
+        "min": 1,
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/allergy-causative-agent"
+        }
+      },
+      {
+        "id": "AllergyIntolerance.patient",
+        "path": "AllergyIntolerance.patient",
+        "comment": "Mandatory in base R4 and not read by fhir-hub. Send a data-absent-reason of 'unknown' if you have nothing to reference."
+      }
+    ]
+  }
+}

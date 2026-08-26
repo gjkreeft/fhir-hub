@@ -1,0 +1,18 @@
+target/
+*.class
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+.DS_Store
+
+# IG tooling: SUSHI and the packages/validator it downloads. The FSH under ig/input/fsh is the
+# source of record.
+#
+# ig/fsh-generated IS committed, deliberately: the runtime validator loads those profiles off
+# the classpath, and the Docker build runs Maven without node, so it cannot regenerate them.
+# Rebuild with `cd ig && npx sushi .` after editing any FSH — IgProfilesTest fails if the
+# committed output no longer covers what the code expects.
+ig/node_modules/
+ig/.pkg/

@@ -1,0 +1,12 @@
+{
+  "resourceType": "CodeSystem",
+  "status": "draft",
+  "content": "not-present",
+  "name": "GStandaardContraIndicatie",
+  "id": "gstandaard-contraindicatie",
+  "title": "G-Standaard contra-indicatie (CICode)",
+  "description": "G-Standaard contra-indication codes. Placeholder system URI; the national OID is not yet pinned.",
+  "version": "0.1.0",
+  "url": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie",
+  "caseSensitive": true
+}

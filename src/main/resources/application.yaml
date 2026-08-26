@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: fhir-hub
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+
+prescriptor:
+  # The XML-RPC dispatch endpoint. Validated at startup; the application fails fast if absent.
+  target-url: ${PRESCRIPTOR_TARGET_URL:https://evs.prescriptor.nl/web_current/xmlrpc_dispatch.php}
+  connect-timeout: 10s
+  read-timeout: 30s
+
+logging:
+  level:
+    nl.digitalis.fhirhub: ${LOG_LEVEL:INFO}
+    # HAPI is chatty at startup about every registered operation.
+    ca.uhn.fhir: WARN
+
+gstandaard:
+  # Read-only reference lookup: resolves current medication (PRK/HPK) to the PRK+GPK pair
+  # Prescriptor needs for medication surveillance. Consumed by GStandaardJdbcConfig, which
+  # builds its own Hikari pool from these properties — deliberately not spring.datasource,
+  # because this is a reference database and not the application's own store.
+  datasource:
+    url: ${GSTANDAARD_DB_URL:jdbc:mariadb://192.168.31.9:3306/gstandaard_views?serverTimezone=CET&useSSL=false}
+    username: ${GSTANDAARD_DB_USER:adapter}
+    password: ${GSTANDAARD_DB_PASSWORD:adapter}
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 0

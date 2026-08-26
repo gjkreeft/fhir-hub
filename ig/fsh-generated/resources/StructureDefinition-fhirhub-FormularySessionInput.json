@@ -1,0 +1,40 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-FormularySessionInput",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput",
+  "version": "0.1.0",
+  "name": "FhirHubFormularySessionInput",
+  "title": "$formulary-session input",
+  "status": "draft",
+  "description": "The body of POST /fhir/$formulary-session. Opens a formulary session: the care provider picks a treatment for a stated reason for encounter.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Parameters",
+  "baseDefinition": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Parameters.parameter",
+        "path": "Parameters.parameter",
+        "min": 5
+      },
+      {
+        "id": "Parameters.parameter:reason",
+        "path": "Parameters.parameter",
+        "sliceName": "reason",
+        "short": "Required here: a formulary session is opened for a stated reason for encounter",
+        "min": 1
+      },
+      {
+        "id": "Parameters.parameter:prescription",
+        "path": "Parameters.parameter",
+        "sliceName": "prescription",
+        "short": "Not accepted here; $createrx-session only",
+        "comment": "Sending it is a 400, not a silent ignore.",
+        "max": "0"
+      }
+    ]
+  }
+}

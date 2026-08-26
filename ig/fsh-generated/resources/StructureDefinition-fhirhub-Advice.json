@@ -1,0 +1,59 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-Advice",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Advice",
+  "version": "0.1.0",
+  "name": "FhirHubAdvice",
+  "title": "fhir-hub advice",
+  "status": "draft",
+  "description": "One advice text produced by the session, either prose or a pointer to patient information.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Communication",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Communication",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Communication.status",
+        "path": "Communication.status",
+        "fixedCode": "completed"
+      },
+      {
+        "id": "Communication.category",
+        "path": "Communication.category",
+        "min": 1,
+        "max": "1",
+        "fixedCodeableConcept": {
+          "coding": [
+            {
+              "code": "instruction",
+              "system": "http://terminology.hl7.org/CodeSystem/communication-category"
+            }
+          ]
+        }
+      },
+      {
+        "id": "Communication.payload",
+        "path": "Communication.payload",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Communication.payload.content[x]",
+        "path": "Communication.payload.content[x]",
+        "short": "Prose as a string, or an Attachment with contentType text/uri-list for a pointer",
+        "comment": "The text/plain versus text/uri-list distinction of the JSON interface becomes the choice of payload type, so no custom content-type field is needed. An Attachment carries the target in Attachment.url.",
+        "type": [
+          {
+            "code": "string"
+          },
+          {
+            "code": "Attachment"
+          }
+        ]
+      }
+    ]
+  }
+}

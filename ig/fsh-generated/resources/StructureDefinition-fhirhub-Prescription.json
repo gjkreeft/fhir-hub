@@ -1,0 +1,127 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-Prescription",
+  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription",
+  "version": "0.1.0",
+  "name": "FhirHubPrescription",
+  "title": "fhir-hub prescription",
+  "status": "draft",
+  "description": "One prescription written in the session.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "MedicationRequest",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/MedicationRequest",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "MedicationRequest.extension",
+        "path": "MedicationRequest.extension",
+        "slicing": {
+          "discriminator": [
+            {
+              "type": "value",
+              "path": "url"
+            }
+          ],
+          "ordered": false,
+          "rules": "open"
+        }
+      },
+      {
+        "id": "MedicationRequest.extension:opiumAct",
+        "path": "MedicationRequest.extension",
+        "sliceName": "opiumAct",
+        "short": "Present only when the product falls under the Opiumwet",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "Extension",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "MedicationRequest.status",
+        "path": "MedicationRequest.status",
+        "fixedCode": "active"
+      },
+      {
+        "id": "MedicationRequest.intent",
+        "path": "MedicationRequest.intent",
+        "fixedCode": "order"
+      },
+      {
+        "id": "MedicationRequest.medication[x]",
+        "path": "MedicationRequest.medication[x]",
+        "short": "PRK and GPK as a pair, plus HPK and ATC when the upstream supplies them",
+        "comment": "CodeableConcept.text carries the product description.",
+        "type": [
+          {
+            "code": "CodeableConcept"
+          }
+        ],
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://digitalis.nl/fhir/ValueSet/dispensed-medication-code"
+        }
+      },
+      {
+        "id": "MedicationRequest.subject",
+        "path": "MedicationRequest.subject",
+        "short": "Always a data-absent-reason of 'unknown', never a reference",
+        "comment": "MedicationRequest.subject is 1..1 in base R4, but a session result carries no patient identity: fhir-hub is stateless and never stored the Patient the host pushed in. data-absent-reason is the FHIR idiom for a mandatory element that genuinely cannot be supplied, and is honest about the gap in a way an invented reference would not be. Do not resolve it; correlate on the session id you polled with.",
+        "constraint": [
+          {
+            "key": "fhirhub-subject-absent",
+            "severity": "error",
+            "human": "subject carries a data-absent-reason rather than a reference: a session result has no patient identity to point at.",
+            "expression": "extension('http://hl7.org/fhir/StructureDefinition/data-absent-reason').exists()",
+            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
+          }
+        ]
+      },
+      {
+        "id": "MedicationRequest.dosageInstruction.extension:codedDirections",
+        "path": "MedicationRequest.dosageInstruction.extension",
+        "sliceName": "codedDirections",
+        "short": "The NHG Tabel 25 instruction, verbatim",
+        "comment": "This is the authoritative form of the dosing instruction. Dosage.text accompanies it for readers that cannot interpret Tabel 25, and no timing or doseAndRate is derived from it.",
+        "min": 0,
+        "max": "1",
+        "type": [
+          {
+            "code": "Extension",
+            "profile": [
+              "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "MedicationRequest.dosageInstruction.timing",
+        "path": "MedicationRequest.dosageInstruction.timing",
+        "max": "0"
+      },
+      {
+        "id": "MedicationRequest.dosageInstruction.doseAndRate",
+        "path": "MedicationRequest.dosageInstruction.doseAndRate",
+        "max": "0"
+      },
+      {
+        "id": "MedicationRequest.dispenseRequest.quantity.system",
+        "path": "MedicationRequest.dispenseRequest.quantity.system",
+        "comment": "The G-Standaard thesaurus basiseenheden, not UCUM: 'ST' (stuks) has no UCUM equivalent."
+      },
+      {
+        "id": "MedicationRequest.dispenseRequest.expectedSupplyDuration",
+        "path": "MedicationRequest.dispenseRequest.expectedSupplyDuration",
+        "comment": "In days, UCUM code 'd'."
+      }
+    ]
+  }
+}

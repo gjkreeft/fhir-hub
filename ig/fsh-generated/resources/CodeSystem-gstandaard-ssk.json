@@ -1,0 +1,12 @@
+{
+  "resourceType": "CodeSystem",
+  "status": "draft",
+  "content": "not-present",
+  "name": "GStandaardSsk",
+  "id": "gstandaard-ssk",
+  "title": "G-Standaard SSK (stofnaam-samenstelling)",
+  "description": "G-Standaard SSK codes, used as an AllergyIntolerance causative agent. Placeholder system URI; the national OID is not yet pinned.",
+  "version": "0.1.0",
+  "url": "http://digitalis.nl/fhir/CodeSystem/gstandaard-ssk",
+  "caseSensitive": true
+}

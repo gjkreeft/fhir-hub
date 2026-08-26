@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<methodResponse>
+  <params>
+    <param>
+      <value>
+        <struct>
+          <member>
+            <name>PrescriptorSessionKey</name>
+            <value><string>sess-abc-123</string></value>
+          </member>
+          <member>
+            <name>SessionKey</name>
+            <value><string>rx-def-456</string></value>
+          </member>
+          <member>
+            <name>Url</name>
+            <value><string>https://evs.prescriptor.nl/web_current/index.php?sk=sess-abc-123</string></value>
+          </member>
+        </struct>
+      </value>
+    </param>
+  </params>
+</methodResponse>
