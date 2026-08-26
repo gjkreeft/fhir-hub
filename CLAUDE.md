@@ -15,7 +15,7 @@ and the open items. This file covers what the README does not: why the code is s
 ## Commands
 
 ```bash
-mvn test                 # 74 tests; no network and no database — WireMock stubs
+mvn test                 # 80 tests; no network and no database — WireMock stubs
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
@@ -139,9 +139,21 @@ redundant and is not — deleting it makes the wire format depend on dependency 
 **The cost is measured, in README under *Enforcement*:** +79 MB of dependencies, ~4.5 s for the
 first validation (moved into startup by `warmUpValidator`), ~70 ms per request after that.
 
+**The canonical is `http://spec.digitalis.nl/fhir`, and the move away from `digitalis.nl/fhir`
+left exactly one shim.** `DigitalisExtensions.LEGACY_CODED_DIRECTIONS` is accepted on input and
+never emitted, because that extension is the only one this interface *reads back* — a host may
+hand `$createrx-session` a prescription issued before the move. Dropping it would fall through
+to `Dosage.text` and lose the coded instruction silently rather than failing, which is the class
+of bug this codebase is built to avoid. The other moved URLs are emit-only and needed nothing.
+
+The four retired G-Standaard code systems stay on `digitalis.nl` and carry an explicit `^url` in
+the FSH so they do not follow the canonical. A retired identifier does not move; relocating one
+invents a third form to support instead of retiring the second. `IgCanonicalsTest` pins both
+halves of this.
+
 **The profiles live in `ig/`, and the ids in them are load-bearing.** SUSHI derives a canonical
-as `{canonical}/StructureDefinition/{Id}`, and those canonicals are already on the wire, so
-renaming an id silently breaks every payload in the field. `IgCanonicalsTest` fails if the FSH
+as `{canonical}/StructureDefinition/{Id}`, and those canonicals are on the wire, so renaming an
+id silently breaks every payload in the field. `IgCanonicalsTest` fails if the FSH
 and the constants in `fhir/` drift apart. Note the corollary — base R4 requires
 several elements this interface never reads (`AllergyIntolerance.patient` and `clinicalStatus`,
 `Condition.subject`, `MedicationStatement.status`/`subject`, `Observation.status`), and a

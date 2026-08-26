@@ -15,18 +15,20 @@ import nl.digitalis.fhirhub.prescriptor.CodeSystemTokens;
  * send, both accepted, and the old one retired later. With sixteen integrating systems that
  * matters more than tidiness.
  *
- * <h2>Open item</h2>
- * The G-Standaard subsystem OIDs for SSK, SNK, OGGrp and CICode are <strong>not yet
- * pinned</strong>. They live inside the Nictiz DECOR ValueSets
- * {@code 2.16.840.1.113883.2.4.3.11.60.121.11.2} (AllergyIntolerance CausativeAgent) and the
- * MedicationContraIndication binding, which have not been expanded. Until they are, the
- * Digitalis URIs below are authoritative for this interface, and the bare token is accepted
- * as a system so integration is not blocked. Do not treat the placeholders as national
- * identifiers — pin them before the interface is published externally.
+ * <h2>The G-Standaard subsystems are pinned</h2>
+ * SSK, SNK, OGGrp and CICode now carry national OIDs, taken from Nictiz's published artifacts
+ * — see {@link Systems} for where each one came from and which is inferred. The migration is
+ * the additive one this class was built for: the national OID is what {@link #systemFor}
+ * emits, and the Digitalis URI is still accepted on input so that nothing an integrator
+ * already sends stops working. The bare token remains accepted for the same reason.
+ *
+ * <p>The Digitalis URIs are therefore <strong>deprecated, not removed</strong>. Retire them
+ * once the integrators have moved, which is a decision about them rather than about this code.
  */
 @Component
 public class CodeSystemRegistry {
 
+	/** Deprecated in favour of the OIDs in {@link Systems}; still accepted on input. */
 	static final String DIGITALIS_SSK = "http://digitalis.nl/fhir/CodeSystem/gstandaard-ssk";
 	static final String DIGITALIS_SNK = "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk";
 	static final String DIGITALIS_OGGRP = "http://digitalis.nl/fhir/CodeSystem/gstandaard-oggrp";
@@ -35,10 +37,10 @@ public class CodeSystemRegistry {
 	private final Map<String, String> tokensBySystem = new LinkedHashMap<>();
 
 	public CodeSystemRegistry() {
-		register(CodeSystemTokens.SSK, DIGITALIS_SSK);
-		register(CodeSystemTokens.SNK, DIGITALIS_SNK);
-		register(CodeSystemTokens.OGGRP, DIGITALIS_OGGRP);
-		register(CodeSystemTokens.CI_CODE, DIGITALIS_CI_CODE);
+		register(CodeSystemTokens.SSK, Systems.G_STANDAARD_SSK, DIGITALIS_SSK);
+		register(CodeSystemTokens.SNK, Systems.G_STANDAARD_SNK, DIGITALIS_SNK);
+		register(CodeSystemTokens.OGGRP, Systems.G_STANDAARD_OGGRP, DIGITALIS_OGGRP);
+		register(CodeSystemTokens.CI_CODE, Systems.G_STANDAARD_CONTRA_INDICATIE, DIGITALIS_CI_CODE);
 		register(CodeSystemTokens.ICPC, Systems.ICPC_1_NL);
 		register(CodeSystemTokens.PRK, Systems.PRK);
 		register(CodeSystemTokens.HPK, Systems.HPK);
@@ -65,10 +67,10 @@ public class CodeSystemRegistry {
 			case CodeSystemTokens.HPK -> Systems.HPK;
 			case "GPK" -> Systems.GPK;
 			case CodeSystemTokens.ICPC -> Systems.ICPC_1_NL;
-			case CodeSystemTokens.SSK -> DIGITALIS_SSK;
-			case CodeSystemTokens.SNK -> DIGITALIS_SNK;
-			case CodeSystemTokens.OGGRP -> DIGITALIS_OGGRP;
-			case CodeSystemTokens.CI_CODE -> DIGITALIS_CI_CODE;
+			case CodeSystemTokens.SSK -> Systems.G_STANDAARD_SSK;
+			case CodeSystemTokens.SNK -> Systems.G_STANDAARD_SNK;
+			case CodeSystemTokens.OGGRP -> Systems.G_STANDAARD_OGGRP;
+			case CodeSystemTokens.CI_CODE -> Systems.G_STANDAARD_CONTRA_INDICATIE;
 			default -> throw new IllegalArgumentException("No system URI known for token " + token);
 		};
 	}

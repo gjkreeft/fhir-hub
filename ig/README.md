@@ -27,10 +27,18 @@ G-Standaard code systems are `content: not-present` so codes cannot be checked, 
 ## Things worth knowing
 
 **The ids are load-bearing.** SUSHI derives a canonical as
-`{canonical}/StructureDefinition/{Id}`, and those canonicals are already on the wire — see
-`fhir/DigitalisExtensions.java` and `fhir/CodeSystemRegistry.java`. Renaming an id is a silent
-breaking change for every payload in the field. `IgCanonicalsTest` in the Maven build fails if
-the two drift apart.
+`{canonical}/StructureDefinition/{Id}`, and those canonicals are on the wire — see
+`fhir/DigitalisExtensions.java`, `fhir/Systems.java` and `fhir/Profiles.java`. Renaming an id, or
+editing `canonical:` in `sushi-config.yaml`, is a silent breaking change for every payload in the
+field. `IgCanonicalsTest` in the Maven build fails if the two drift apart.
+
+**The four retired G-Standaard code systems carry an explicit `^url` on `digitalis.nl`** and must
+not follow the canonical. They name what integrators already send; moving them would create a
+third form rather than retiring the second.
+
+**Hosting.** Nothing is served at `http://spec.digitalis.nl/fhir/…` yet. The intended layout is
+static files, `application/fhir+json` under content negotiation with an HTML rendering for
+browsers, current at `/fhir/…` and versioned snapshots at `/fhir/<version>/…`.
 
 **The parent is plain R4, not nl-core**, for reasons that were checked rather than assumed. See
 *Profiles* in `../README.md`.

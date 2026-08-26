@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-MedicationStatement",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement",
   "version": "0.1.0",
   "name": "FhirHubMedicationStatement",
   "title": "fhir-hub MedicationStatement",
@@ -32,7 +32,7 @@
         ],
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/medication-code"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/medication-code"
         }
       },
       {

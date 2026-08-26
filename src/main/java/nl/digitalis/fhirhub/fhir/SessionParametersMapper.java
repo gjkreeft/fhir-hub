@@ -182,12 +182,18 @@ public class SessionParametersMapper {
 	/**
 	 * The NHG Tabel 25 coded instruction. Taken from the CodedDirections extension when the
 	 * host round-trips a prescription this interface produced, and otherwise from Dosage.text.
+	 *
+	 * <p>Both the current and the pre-move extension URL are accepted, because a host may hand
+	 * back a prescription issued before the canonical moved. Only the current one is emitted.
 	 */
 	private String codedDirections(MedicationRequest prescription) {
 		for (Dosage dosage : prescription.getDosageInstruction()) {
-			Extension coded = dosage.getExtensionByUrl(DigitalisExtensions.CODED_DIRECTIONS);
-			if (coded != null && coded.getValue() != null) {
-				return coded.getValue().primitiveValue();
+			for (String url : new String[] {
+					DigitalisExtensions.CODED_DIRECTIONS, DigitalisExtensions.LEGACY_CODED_DIRECTIONS }) {
+				Extension coded = dosage.getExtensionByUrl(url);
+				if (coded != null && coded.getValue() != null) {
+					return coded.getValue().primitiveValue();
+				}
 			}
 		}
 

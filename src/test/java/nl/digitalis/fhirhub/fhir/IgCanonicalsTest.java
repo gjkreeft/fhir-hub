@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 class IgCanonicalsTest {
 
 	private static final Path FSH = Path.of("ig", "input", "fsh");
+
+	private static final String CANONICAL = "http://spec.digitalis.nl/fhir";
 
 	@Test
 	void theIgDefinesTheExtensionsAtTheUrlsThisServiceEmits() throws IOException {
@@ -43,6 +46,21 @@ class IgCanonicalsTest {
 		assertThat(idIn(terminology, CodeSystemRegistry.DIGITALIS_CI_CODE)).isTrue();
 	}
 
+	/**
+	 * The pinned national OIDs have to be in the value sets, or the profiles would still be
+	 * binding to the deprecated Digitalis placeholders while the service emits the OIDs.
+	 */
+	@Test
+	void theIgBindsThePinnedGStandaardOids() throws IOException {
+		String terminology = read("terminology.fsh");
+
+		assertThat(terminology)
+				.contains(Systems.G_STANDAARD_SSK)
+				.contains(Systems.G_STANDAARD_SNK)
+				.contains(Systems.G_STANDAARD_OGGRP)
+				.contains(Systems.G_STANDAARD_CONTRA_INDICATIE);
+	}
+
 	/** The OIDs are quoted into the profiles by hand, so they are worth pinning too. */
 	@Test
 	void theIgUsesTheSameOidsAsSystems() throws IOException {
@@ -55,6 +73,43 @@ class IgCanonicalsTest {
 				.contains(Systems.GPK)
 				.contains(Systems.NHG_TABEL_45)
 				.contains(Systems.ATC);
+	}
+
+	/**
+	 * The IG's canonical and the constants have to name the same host. SUSHI derives every URL
+	 * from sushi-config.yaml, so a canonical edited there and nowhere else would silently
+	 * republish every artifact at an address this service does not use.
+	 */
+	@Test
+	void theIgCanonicalMatchesTheConstants() throws IOException {
+		assertThat(Files.readString(Path.of("ig", "sushi-config.yaml")))
+				.contains("canonical: " + CANONICAL);
+
+		assertThat(DigitalisExtensions.CODED_DIRECTIONS).startsWith(CANONICAL + "/");
+		assertThat(DigitalisExtensions.OPIUM_ACT_CLASSIFICATION).startsWith(CANONICAL + "/");
+		assertThat(Systems.G_STANDAARD_BIJZONDER_KENMERK).startsWith(CANONICAL + "/");
+		assertThat(Profiles.FORMULARY_SESSION_INPUT).startsWith(CANONICAL + "/");
+		assertThat(Profiles.CREATERX_SESSION_INPUT).startsWith(CANONICAL + "/");
+		assertThat(Profiles.SESSION_OUTPUT).startsWith(CANONICAL + "/");
+		assertThat(Profiles.RESULT_BUNDLE).startsWith(CANONICAL + "/");
+	}
+
+	/**
+	 * The retired G-Standaard code systems stay on the pre-move host. They exist only to name
+	 * what integrators already send, so following the canonical would invent a third form to
+	 * support instead of retiring the second.
+	 */
+	@Test
+	void theRetiredCodeSystemsStayOnTheOldHost() throws IOException {
+		String terminology = read("terminology.fsh");
+
+		for (String legacy : List.of(CodeSystemRegistry.DIGITALIS_SSK, CodeSystemRegistry.DIGITALIS_SNK,
+				CodeSystemRegistry.DIGITALIS_OGGRP, CodeSystemRegistry.DIGITALIS_CI_CODE)) {
+			assertThat(legacy).startsWith("http://digitalis.nl/fhir/");
+			assertThat(terminology)
+					.as("%s is pinned with an explicit ^url, not derived from the canonical", legacy)
+					.contains("* ^url = \"" + legacy + "\"");
+		}
 	}
 
 	/** SUSHI turns "Id: x" into {canonical}/StructureDefinition/x — or /CodeSystem/x. */

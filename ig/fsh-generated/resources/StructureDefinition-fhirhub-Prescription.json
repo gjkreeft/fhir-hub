@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-Prescription",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription",
   "version": "0.1.0",
   "name": "FhirHubPrescription",
   "title": "fhir-hub prescription",
@@ -40,7 +40,7 @@
           {
             "code": "Extension",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification"
             ]
           }
         ]
@@ -67,7 +67,7 @@
         ],
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/dispensed-medication-code"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/dispensed-medication-code"
         }
       },
       {
@@ -81,7 +81,7 @@
             "severity": "error",
             "human": "subject carries a data-absent-reason rather than a reference: a session result has no patient identity to point at.",
             "expression": "extension('http://hl7.org/fhir/StructureDefinition/data-absent-reason').exists()",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
           }
         ]
       },
@@ -97,7 +97,7 @@
           {
             "code": "Extension",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
             ]
           }
         ]

@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-Patient",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Patient",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Patient",
   "version": "0.1.0",
   "name": "FhirHubPatient",
   "title": "fhir-hub Patient",
@@ -28,7 +28,7 @@
         "min": 1,
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/patient-gender"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/patient-gender"
         }
       },
       {

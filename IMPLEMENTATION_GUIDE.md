@@ -18,7 +18,7 @@ every endpoint with its input and output specification.
 
 ## Table of contents
 
-- [Changes to the input payload](#changes-to-the-input-payload)
+- [Changes to the payloads](#changes-to-the-payloads)
 - [Global flow](#global-flow)
 - [Conventions](#conventions)
 - [Authentication](#authentication)
@@ -34,10 +34,31 @@ every endpoint with its input and output specification.
 - [Moving from the JSON API](#moving-from-the-json-api)
 - [Current limitations](#current-limitations)
 
-## Changes to the input payload
+## Changes to the payloads
 
-Three input parameters changed shape so that the generated `OperationDefinition`s can describe
-them. If you built against an earlier draft, these are the edits you need:
+If you built against an earlier draft, these are the edits you need.
+
+**The canonical moved to `http://spec.digitalis.nl/fhir`.** Every extension URL, profile URL and
+Digitalis-minted code system now lives under that host instead of `http://digitalis.nl/fhir` —
+the artifacts get a host of their own, separate from the corporate website and from whatever
+serves this API.
+
+| | Was | Now |
+| --- | --- | --- |
+| Coded directions extension | `http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections` | `http://spec.digitalis.nl/fhir/…` |
+| Opiumwet extension | `http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification` | `http://spec.digitalis.nl/fhir/…` |
+| Bijzonder kenmerk code system | `http://digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk` | `http://spec.digitalis.nl/fhir/…` |
+
+This affects **output as well as input**. If you match on the old extension URL when reading a
+`$session-result` Bundle, update it — you will otherwise stop seeing the coded dosing
+instruction. On the way in, both URLs are accepted for `CodedDirections`, so a prescription you
+stored before the move can still be handed to `$createrx-session` unchanged.
+
+The four retired G-Standaard code systems (`…/CodeSystem/gstandaard-ssk` and friends) deliberately
+did **not** move: they exist only to name what integrators already send, and are on their way out.
+
+Three input parameters also changed shape, so that the generated `OperationDefinition`s can
+describe them:
 
 | Was | Now | Why |
 | --- | --- | --- |
@@ -232,14 +253,14 @@ Authorization: Basic ...
           "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
           "valueCode": "unknown" } ] },
         "code": { "coding": [ {
-          "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk", "code": "10499" } ] } } },
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.1.750", "code": "10499" } ] } } },
     { "name": "condition", "resource": {
         "resourceType": "Condition",
         "subject": { "extension": [ {
           "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
           "valueCode": "unknown" } ] },
         "code": { "coding": [ {
-          "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie",
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.1.902.40",
           "code": "228" } ] } } },
     { "name": "medicationStatement", "resource": {
         "resourceType": "MedicationStatement",
@@ -322,7 +343,7 @@ through verbatim in both directions and derives no structured dosing. See
         "display": "PARACETAMOL ZETPIL 1000MG" },
       { "system": "http://www.whocc.no/atc", "code": "N02BE01" } ] },
     "dosageInstruction": [ { "extension": [ {
-      "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+      "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
       "valueString": "3-4D1S; gedurende max. 1 maand" } ] } ],
     "dispenseRequest": { "quantity": {
       "value": 15, "code": "ST",
@@ -416,9 +437,9 @@ switch on which element is populated rather than inspecting the text yourself.
       "resource": {
         "resourceType": "MedicationRequest",
         "extension": [ {
-          "url": "http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification",
+          "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification",
           "valueCodeableConcept": { "coding": [ {
-            "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk",
+            "system": "http://spec.digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk",
             "code": "2", "display": "Product valt onder Opiumwet in volle omvang" } ] } } ],
         "status": "active", "intent": "order",
         "subject": { "extension": [ {
@@ -432,7 +453,7 @@ switch on which element is populated rather than inspecting the text yourself.
           "text": "PARACETAMOL ZETPIL 1000MG" },
         "dosageInstruction": [ {
           "extension": [ {
-            "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+            "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
             "valueString": "3-4D1S; gedurende max. 1 maand" } ],
           "text": "3 tot 4 maal per dag 1 stuk" } ],
         "dispenseRequest": {
@@ -465,7 +486,7 @@ switch on which element is populated rather than inspecting the text yourself.
 ## Profiles
 
 Every payload in this document has a `StructureDefinition` you can validate against. They are
-published as an implementation guide with the canonical `http://digitalis.nl/fhir`:
+published as an implementation guide with the canonical `http://spec.digitalis.nl/fhir`:
 
 | Payload | Profile |
 | --- | --- |
@@ -529,24 +550,28 @@ Emitted on output and accepted on input:
 Copy these strings exactly. A `system` this interface does not recognise is not routed: the coding
 is treated as absent, and the request fails with a 400 naming the element it was on.
 
-**Digitalis-local, not national.** The four subsystems below have no published national ValueSet
-yet, so these URIs are local to this interface. Keep them in configuration rather than hardcoding
-them in several places: when national OIDs are published, both forms will be accepted during a
-transition period that this document will date, and the local URIs will then be retired. Do not
-publish them onward to other systems as though they were national identifiers.
+**The four G-Standaard subsystems are now pinned to national OIDs.** They were Digitalis-local
+URIs while no national identifier was published; they are not any more.
 
 | Concept | `system` | Used by |
 | --- | --- | --- |
-| SSK (stofsoort) | `http://digitalis.nl/fhir/CodeSystem/gstandaard-ssk` | `allergyIntolerance` |
-| SNK (stofnaam) | `http://digitalis.nl/fhir/CodeSystem/gstandaard-snk` | `allergyIntolerance` |
-| OGGrp (overgevoeligheidsgroep) | `http://digitalis.nl/fhir/CodeSystem/gstandaard-oggrp` | `allergyIntolerance` |
-| CICode (contra-indicatie) | `http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie` | `condition` |
-| Bijzonder kenmerk (BST401T) | `http://digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk` | Opium extension |
+| SSK (stofnaamcode incl. toedieningsweg) | `urn:oid:2.16.840.1.113883.2.4.4.1.725` | `allergyIntolerance` |
+| SNK (stofnaamcode / generieke namen) | `urn:oid:2.16.840.1.113883.2.4.4.1.750` | `allergyIntolerance` |
+| OGGrp (ongewenste medicatiegroep, thesaurus 122) | `urn:oid:2.16.840.1.113883.2.4.4.1.902.122` | `allergyIntolerance` |
+| CICode (contra-indicatie, thesaurus 40) | `urn:oid:2.16.840.1.113883.2.4.4.1.902.40` | `condition` |
 
-**Short names are also accepted as a `system` on input** — `SSK`, `SNK`, `OGGrp`, `CICode`, `ICPC`,
-`PRK`, `HPK`. Prefer the URI; the short names are there so a host that has not adopted URIs yet can
-integrate without waiting. Either form is accepted for the same code system, so you can switch on
-your own schedule. Output always uses the canonical URI from the tables above, never a short name.
+These are the same OIDs Nictiz binds to in `nl-core-AllergyIntolerance` and
+`nl-core-MedicationContraIndication`, so a coding you send here is one you can send to any Dutch
+system that follows those profiles.
+
+**If you are already sending the old Digitalis URIs**
+(`http://digitalis.nl/fhir/CodeSystem/gstandaard-…`), nothing breaks. They remain accepted and are
+mapped to the same subsystem; the OIDs above are what fhir-hub emits. Move when it suits you. They
+will be retired eventually, and this document will date that before it happens.
+
+The bare upstream token (`SSK`, `SNK`, `OGGrp`, `CICode`, `PRK`, `HPK`, `ICPC`) is also still
+accepted as a `system` so that a host mid-migration is never blocked. It is not conformant — the
+profiles do not admit it — and it is the first of the three forms that will go.
 
 ## Extensions
 
@@ -555,7 +580,7 @@ Two, both Digitalis-defined because no national artifact covers them. Ask Digita
 [Current limitations](#current-limitations).
 
 **`ext-Dosage.CodedDirections`** —
-`http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections`, `valueString`. The NHG
+`http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections`, `valueString`. The NHG
 Tabel 25 coded instruction, e.g. `"3-4D1S; gedurende max. 1 maand"`.
 
 This is the dosing instruction **in both directions**. Store it and hand it back unchanged unless
@@ -567,7 +592,7 @@ No `timing` or `doseAndRate` is produced, and any you send is **ignored**. To ch
 this extension; editing `timing` has no effect.
 
 **`ext-MedicationRequest.OpiumActClassification`** —
-`http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification`,
+`http://spec.digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification`,
 `valueCodeableConcept`. A G-Standaard bijzonder kenmerk, present only when the product falls under
 the Opiumwet.
 
@@ -659,9 +684,11 @@ it.
 Things you may expect to be able to do, and cannot yet. Each is a gap in the published artifacts,
 not in the running service.
 
-- **The canonical URLs still do not dereference.** `http://digitalis.nl/fhir/...` appears in
-  every payload, and the definitions now exist, but nothing is hosted at those addresses yet.
-  Request the IG package from Digitalis and load it locally.
+- **The canonical URLs do not dereference yet.** `http://spec.digitalis.nl/fhir/...` appears in
+  every payload and the definitions exist, but the host is not serving them yet. Request the IG
+  package from Digitalis and load it locally. Note the consequence if your tooling resolves
+  profiles over the network: an unresolvable profile is reported as *not checked* rather than as
+  a failure, so a validation run can report success having verified nothing.
 - **No `meta.profile` is asserted** on any resource, so do not filter or route on it. Validate
   against the profile URLs above explicitly instead.
 - **nl-core is not derived from**, so do not expect these resources to satisfy nl-core. Three of

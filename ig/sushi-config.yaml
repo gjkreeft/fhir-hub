@@ -1,8 +1,12 @@
-# The canonical matches the URLs the running service already emits — see
-# fhir/DigitalisExtensions.java and fhir/CodeSystemRegistry.java. Changing it would
-# invalidate every extension URL fhir-hub has ever put on the wire.
+# The canonical matches the URLs the running service emits — see fhir/DigitalisExtensions.java,
+# fhir/Systems.java and fhir/Profiles.java. Keep them in step; IgCanonicalsTest fails if they
+# drift.
+#
+# spec.digitalis.nl rather than digitalis.nl: the artifacts get a host of their own, separate
+# from the corporate site and from whatever eventually serves the API. The /fhir segment leaves
+# room for the other contract Digitalis publishes, json-interface's OpenAPI.
 id: nl.digitalis.fhirhub
-canonical: http://digitalis.nl/fhir
+canonical: http://spec.digitalis.nl/fhir
 name: DigitalisFhirHub
 title: "Digitalis fhir-hub Implementation Guide"
 description: "FHIR R4 conformance artifacts for the Prescriptor 3 interface: the payloads of $formulary-session, $createrx-session and $session-result."

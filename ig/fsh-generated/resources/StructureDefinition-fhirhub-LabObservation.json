@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-LabObservation",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation",
   "version": "0.1.0",
   "name": "FhirHubLabObservation",
   "title": "fhir-hub laboratory Observation",
@@ -27,7 +27,7 @@
         "comment": "Send the composite code as ONE coding: memo (positions 1-4), materiaal (5-6) and bijzonderheid (7-8) belong together — the combination is the identity of the determination. Do not split them across three codings or three resources. Codes shorter than 8 positions are padded. Unlike the other systems, the short name is not accepted here.",
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/nhg-tabel-45"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/nhg-tabel-45"
         }
       },
       {

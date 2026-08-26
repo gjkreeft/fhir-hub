@@ -3,7 +3,7 @@
   "id": "ExampleResultBundle",
   "meta": {
     "profile": [
-      "http://digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle"
+      "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle"
     ]
   },
   "type": "collection",
@@ -15,7 +15,7 @@
         "id": "ExamplePrescription",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
           ]
         },
         "status": "active",
@@ -46,7 +46,7 @@
           {
             "extension": [
               {
-                "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+                "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
                 "valueString": "3-4D1S; gedurende max. 1 maand"
               }
             ],
@@ -70,7 +70,7 @@
         "id": "ExampleAdvice",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
           ]
         },
         "status": "completed",

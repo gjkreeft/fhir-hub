@@ -6,7 +6,7 @@
   "title": "Prescription input medication code (PRK, HPK or ATC)",
   "description": "Codings accepted on the prescription handed to $createrx-session. An ATC may accompany the product code but cannot stand alone.",
   "version": "0.1.0",
-  "url": "http://digitalis.nl/fhir/ValueSet/prescription-input-medication",
+  "url": "http://spec.digitalis.nl/fhir/ValueSet/prescription-input-medication",
   "compose": {
     "include": [
       {

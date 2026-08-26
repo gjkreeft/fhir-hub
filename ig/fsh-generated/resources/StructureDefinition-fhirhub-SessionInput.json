@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-SessionInput",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
   "version": "0.1.0",
   "name": "FhirHubSessionInput",
   "title": "Session input (shared base)",
@@ -54,7 +54,7 @@
           {
             "code": "Patient",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
             ]
           }
         ]
@@ -93,12 +93,12 @@
             "severity": "error",
             "human": "An ICPC-1 NL code is a letter and two digits, optionally followed by a dot and two more (A01, U71.01).",
             "expression": "coding.where(system = 'urn:oid:2.16.840.1.113883.2.4.4.31.1').all(code.matches('^[A-Z][0-9]{2}(\\\\.[0-9]{2})?$'))",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
           }
         ],
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/icpc-1-nl"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl"
         }
       },
       {
@@ -139,7 +139,7 @@
             "severity": "error",
             "human": "Only http and https are accepted: the care provider's browser is redirected here, so a custom scheme such as an app deep link is rejected rather than forwarded.",
             "expression": "$this.matches('^https?://')",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
           }
         ]
       },
@@ -182,7 +182,7 @@
             "severity": "error",
             "human": "Must contain at least one non-whitespace character.",
             "expression": "$this.matches('[^\\\\s]')",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
           }
         ]
       },
@@ -223,7 +223,7 @@
             "severity": "error",
             "human": "Must contain at least one non-whitespace character.",
             "expression": "$this.matches('[^\\\\s]')",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput"
           }
         ]
       },
@@ -262,7 +262,7 @@
           {
             "code": "AllergyIntolerance",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
             ]
           }
         ]
@@ -297,7 +297,7 @@
           {
             "code": "Condition",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
             ]
           }
         ]
@@ -332,7 +332,7 @@
           {
             "code": "MedicationStatement",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
             ]
           }
         ]
@@ -367,7 +367,7 @@
           {
             "code": "Observation",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
             ]
           }
         ]
@@ -402,7 +402,7 @@
           {
             "code": "MedicationRequest",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
             ]
           }
         ]

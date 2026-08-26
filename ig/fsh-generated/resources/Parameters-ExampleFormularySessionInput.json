@@ -3,7 +3,7 @@
   "id": "ExampleFormularySessionInput",
   "meta": {
     "profile": [
-      "http://digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput"
+      "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput"
     ]
   },
   "parameter": [
@@ -14,7 +14,7 @@
         "id": "ExamplePatient",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
           ]
         },
         "gender": "female",
@@ -51,7 +51,7 @@
         "id": "ExampleAllergy",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
           ]
         },
         "patient": {
@@ -73,7 +73,7 @@
         "code": {
           "coding": [
             {
-              "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk",
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.1.750",
               "code": "10499"
             }
           ]
@@ -87,7 +87,7 @@
         "id": "ExampleContraIndication",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
           ]
         },
         "subject": {
@@ -101,7 +101,7 @@
         "code": {
           "coding": [
             {
-              "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie",
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.1.902.40",
               "code": "228"
             }
           ]
@@ -115,7 +115,7 @@
         "id": "ExampleCurrentMedication",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
           ]
         },
         "status": "active",
@@ -144,7 +144,7 @@
         "id": "ExampleLabResult",
         "meta": {
           "profile": [
-            "http://digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
           ]
         },
         "status": "final",

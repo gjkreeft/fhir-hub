@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-Advice",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Advice",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Advice",
   "version": "0.1.0",
   "name": "FhirHubAdvice",
   "title": "fhir-hub advice",

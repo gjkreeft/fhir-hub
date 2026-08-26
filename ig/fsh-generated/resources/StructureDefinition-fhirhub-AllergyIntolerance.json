@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-AllergyIntolerance",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance",
   "version": "0.1.0",
   "name": "FhirHubAllergyIntolerance",
   "title": "fhir-hub AllergyIntolerance",
@@ -28,7 +28,7 @@
         "min": 1,
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/allergy-causative-agent"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/allergy-causative-agent"
         }
       },
       {

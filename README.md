@@ -78,14 +78,14 @@ Authorization: Basic ...
           "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
           "valueCode": "unknown" } ] },
         "code": { "coding": [ {
-          "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk", "code": "10499" } ] } } },
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.1.750", "code": "10499" } ] } } },
     { "name": "condition", "resource": {
         "resourceType": "Condition",
         "subject": { "extension": [ {
           "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
           "valueCode": "unknown" } ] },
         "code": { "coding": [ {
-          "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie",
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.1.902.40",
           "code": "228" } ] } } },
     { "name": "observation", "resource": {
         "resourceType": "Observation",
@@ -121,7 +121,7 @@ image of what `$session-result` returns, so a host can hand back what it receive
         "display": "PARACETAMOL ZETPIL 1000MG" },
       { "system": "http://www.whocc.no/atc", "code": "N02BE01" } ] },
     "dosageInstruction": [ { "extension": [ {
-      "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+      "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
       "valueString": "3-4D1S; gedurende max. 1 maand" } ] } ],
     "dispenseRequest": { "quantity": {
       "value": 15, "code": "ST",
@@ -217,6 +217,16 @@ zib Gebruiksinstructie mapping, and is not attempted today.
 
 ## Profiles
 
+The canonical is **`http://spec.digitalis.nl/fhir`**. A subdomain rather than `digitalis.nl/fhir`
+so the artifacts are independent of the corporate site's lifecycle and can be served as static
+files by whoever owns the IG, and `spec.` rather than `fhir.` so the name stays free for the
+running service and leaves room under `/fhir` for the other contract Digitalis publishes,
+`json-interface`'s OpenAPI. Nothing is served there yet — see *Open items*.
+
+The four retired G-Standaard code system URLs stay on `digitalis.nl`: a retired identifier does
+not move, and relocating them would invent a third form to support rather than retiring the
+second.
+
 StructureDefinitions for every payload live in `ig/`, written in FSH and built with SUSHI. They
 cover the two session inputs, the session output, the `$session-result` Bundle, the five
 resources a host sends in, the two Digitalis extensions, and the terminology behind them. Every
@@ -232,7 +242,7 @@ nl-core profile, not by reading cardinalities:
 | Resource | nl-core profile | Result |
 | --- | --- | --- |
 | Patient | `nl-core-Patient` | **0 errors.** The one that is ready today |
-| AllergyIntolerance | `nl-core-AllergyIntolerance` | **Fails.** `code` has a *required* binding to Nictiz DECOR ValueSet `…60.121.11.2`, which a Digitalis placeholder G-Standaard system cannot satisfy. Blocked on the same open item as the unpinned subsystem OIDs |
+| AllergyIntolerance | `nl-core-AllergyIntolerance` | **Undetermined.** Since the OIDs were pinned the coding is a member of the required binding `…60.121.11.2` by construction — that ValueSet composes `…60.40.2.8.2.14`, which includes `urn:oid:…1.750` unfiltered. The validator cannot confirm it: a sibling ValueSet in the same composition uses a SNOMED filter (`concept in 98061000146100`) that tx.fhir.org does not support, so the whole binding returns `SERVER_ERROR`. Nothing left to fix on this side |
 | Observation (lab) | `nl-core-LaboratoryTestResult` | **Fails, 3 errors.** `Observation.category` and its `laboratoryCategory` slice are required and are neither sent nor read here; and the TestCode binding rejects NHG Tabel 45 (`ALDOB`). Still rejected in the `0.12.0-labtrial.1` pre-release — publishing the CodeSystem was not enough, the binding itself has to change (Nictiz BITS **ZIB-639**) |
 | Condition | *none applicable* | The contra-indication profile, `nl-core-MedicationContraIndication`, is on **`Flag`**. Of the 8 nl-core `Condition` profiles none models a medication contra-indication |
 | MedicationStatement | *none* | The package contains **no** `MedicationStatement` profile. `nl-core-MedicationUse2` is a Medicatieproces artifact, published separately |
@@ -345,11 +355,21 @@ Changing them alters clinical behaviour and needs its own decision.
 
 ## Open items
 
-- **Pin the G-Standaard subsystem OIDs for `SSK`, `SNK`, `OGGrp`, `CICode.`** They live inside
-  the Nictiz DECOR ValueSets `…60.121.11.2` (AllergyIntolerance CausativeAgent) and the
-  MedicationContraIndication binding, which have not been expanded. Until then
-  `CodeSystemRegistry` serves Digitalis URIs and also accepts the bare token, so a later
-  change is additive rather than breaking. **Do not publish externally before pinning these.**
+- **Retire the deprecated Digitalis code system URIs, and the bare-token form.** The national
+  OIDs are pinned (see *Code systems* in the Implementation Guide) and are what fhir-hub emits,
+  but the two older forms are still accepted so that nothing an integrator sends today breaks.
+  Retiring them is a decision about the integrators, not about the code: agree a date, publish
+  it, then delete the entries from `CodeSystemRegistry` and the value sets in `ig/`.
+- **Confirm the OGGrp mapping against a G-Standaard bestandsbeschrijving.** Thesaurus 122
+  ("Ongewenste medicatiegroepen") is an inference — it is the only group-level G-Standaard
+  system Nictiz publishes and the third G-Standaard member of the CausativeAgent binding
+  alongside SSK and SNK — but nothing published uses the token `OGGrp`, so it is the one of the
+  four that was not read off a label. See `Systems.G_STANDAARD_OGGRP`.
+- **Serve the canonicals.** Nothing answers at `http://spec.digitalis.nl/fhir/…` — the DNS name
+  does not exist yet. Until it does, a validator that resolves profiles over the network reports
+  an unresolvable profile as *not checked* rather than as a failure, so an integrator can get a
+  green run that verified nothing. Static files behind that host, `application/fhir+json` with
+  content negotiation, current at `/fhir/…` and versioned snapshots at `/fhir/<version>/…`.
 - **Publish an Implementation Guide.** With a dozen HIS suppliers and several XIS systems,
   profiles, examples, and a changelog need to be published rather than described in a README.
 - **Versioning policy.** `version` has left the payload. Path versioning plus an additive-only

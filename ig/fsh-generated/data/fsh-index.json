@@ -12,40 +12,40 @@
     "fshName": "GStandaardBijzonderKenmerk",
     "fshType": "CodeSystem",
     "fshFile": "terminology.fsh",
-    "startLine": 62,
-    "endLine": 71
+    "startLine": 80,
+    "endLine": 89
   },
   {
     "outputFile": "CodeSystem-gstandaard-contraindicatie.json",
     "fshName": "GStandaardContraIndicatie",
     "fshType": "CodeSystem",
     "fshFile": "terminology.fsh",
-    "startLine": 52,
-    "endLine": 58
+    "startLine": 68,
+    "endLine": 76
   },
   {
     "outputFile": "CodeSystem-gstandaard-oggrp.json",
     "fshName": "GStandaardOggrp",
     "fshType": "CodeSystem",
     "fshFile": "terminology.fsh",
-    "startLine": 44,
-    "endLine": 50
+    "startLine": 58,
+    "endLine": 66
   },
   {
     "outputFile": "CodeSystem-gstandaard-snk.json",
     "fshName": "GStandaardSnk",
     "fshType": "CodeSystem",
     "fshFile": "terminology.fsh",
-    "startLine": 36,
-    "endLine": 42
+    "startLine": 48,
+    "endLine": 56
   },
   {
     "outputFile": "CodeSystem-gstandaard-ssk.json",
     "fshName": "GStandaardSsk",
     "fshType": "CodeSystem",
     "fshFile": "terminology.fsh",
-    "startLine": 28,
-    "endLine": 34
+    "startLine": 38,
+    "endLine": 46
   },
   {
     "outputFile": "Parameters-ExampleFormularySessionInput.json",
@@ -188,56 +188,56 @@
     "fshName": "AllergyCausativeAgentVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 87,
-    "endLine": 94
+    "startLine": 105,
+    "endLine": 116
   },
   {
     "outputFile": "ValueSet-contra-indication.json",
     "fshName": "ContraIndicationVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 96,
-    "endLine": 102
+    "startLine": 118,
+    "endLine": 126
   },
   {
     "outputFile": "ValueSet-dispensed-medication-code.json",
     "fshName": "DispensedMedicationCodeVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 112,
-    "endLine": 120
+    "startLine": 136,
+    "endLine": 144
   },
   {
     "outputFile": "ValueSet-icpc-1-nl.json",
     "fshName": "IcpcVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 122,
-    "endLine": 127
+    "startLine": 146,
+    "endLine": 151
   },
   {
     "outputFile": "ValueSet-medication-code.json",
     "fshName": "MedicationCodeVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 104,
-    "endLine": 110
+    "startLine": 128,
+    "endLine": 134
   },
   {
     "outputFile": "ValueSet-nhg-tabel-45.json",
     "fshName": "LabDeterminationVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 129,
-    "endLine": 134
+    "startLine": 153,
+    "endLine": 158
   },
   {
     "outputFile": "ValueSet-opium-act-classification.json",
     "fshName": "OpiumActVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 136,
-    "endLine": 141
+    "startLine": 160,
+    "endLine": 165
   },
   {
     "outputFile": "ValueSet-patient-gender.json",

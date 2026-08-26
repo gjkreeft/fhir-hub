@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-ResultBundle",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle",
   "version": "0.1.0",
   "name": "FhirHubResultBundle",
   "title": "$session-result output",
@@ -50,7 +50,7 @@
           {
             "code": "MedicationRequest",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Prescription"
             ]
           }
         ]
@@ -70,7 +70,7 @@
           {
             "code": "Communication",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
             ]
           }
         ]

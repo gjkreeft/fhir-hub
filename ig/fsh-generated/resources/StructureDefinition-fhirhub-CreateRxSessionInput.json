@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-CreateRxSessionInput",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-CreateRxSessionInput",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-CreateRxSessionInput",
   "version": "0.1.0",
   "name": "FhirHubCreateRxSessionInput",
   "title": "$createrx-session input",
@@ -11,7 +11,7 @@
   "kind": "resource",
   "abstract": false,
   "type": "Parameters",
-  "baseDefinition": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
+  "baseDefinition": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionInput",
   "derivation": "constraint",
   "differential": {
     "element": [

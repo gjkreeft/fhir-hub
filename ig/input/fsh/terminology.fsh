@@ -12,48 +12,66 @@ Alias: $gpk       = urn:oid:2.16.840.1.113883.2.4.4.1
 Alias: $nhg45     = urn:oid:2.16.840.1.113883.2.4.4.30.45
 Alias: $basiseenheid = urn:oid:2.16.840.1.113883.2.4.4.1.900.2
 Alias: $atc       = http://www.whocc.no/atc
+Alias: $ssk       = urn:oid:2.16.840.1.113883.2.4.4.1.725
+Alias: $snk       = urn:oid:2.16.840.1.113883.2.4.4.1.750
+Alias: $oggrp     = urn:oid:2.16.840.1.113883.2.4.4.1.902.122
+Alias: $cicode    = urn:oid:2.16.840.1.113883.2.4.4.1.902.40
 Alias: $ucum      = http://unitsofmeasure.org
 
 // ---------------------------------------------------------------------------
-// Digitalis-local code systems.
+// Digitalis-local code systems: DEPRECATED, and kept only for migration.
 //
-// All four G-Standaard subsystems below are PLACEHOLDERS. The national OIDs live inside the
-// Nictiz DECOR ValueSets 2.16.840.1.113883.2.4.3.11.60.121.11.2 (AllergyIntolerance
-// CausativeAgent) and the MedicationContraIndication binding, which have not been expanded.
-// Do not treat these URIs as national identifiers, and do not publish this IG externally
-// before they are pinned. Adding the real OID later is additive: the value sets below can
-// include both while integrators migrate.
+// The four G-Standaard subsystems below were placeholders while the national OIDs were
+// unpinned. They now are pinned — see Systems.java for the provenance of each — so the value
+// sets further down include the national OID *and* the Digitalis URI, and fhir-hub emits the
+// national one. Send the OIDs.
+//
+// These are not deleted because sixteen integrating systems already send them. Retire them
+// once those integrators have moved; the value sets are where to do it.
+//
+// Note the explicit ^url on each: they stay on the OLD host, digitalis.nl, and do NOT follow
+// the canonical to spec.digitalis.nl. A retired identifier does not move — these URLs exist
+// only to name what integrators already send, and relocating them would invent a third form
+// to support rather than retiring the second.
 // ---------------------------------------------------------------------------
 
 CodeSystem: GStandaardSsk
 Id: gstandaard-ssk
+// Pinned to the pre-move host on purpose; see above.
 Title: "G-Standaard SSK (stofnaam-samenstelling)"
-Description: "G-Standaard SSK codes, used as an AllergyIntolerance causative agent. Placeholder system URI; the national OID is not yet pinned."
-* ^status = #draft
+Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.725 (G-standaard Stofnaamcode i.c.m. toedieningsweg). Accepted on input; not emitted."
+* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-ssk"
+* ^status = #retired
 * ^content = #not-present
 * ^caseSensitive = true
 
 CodeSystem: GStandaardSnk
 Id: gstandaard-snk
+// Pinned to the pre-move host on purpose; see above.
 Title: "G-Standaard SNK (stofnaam)"
-Description: "G-Standaard SNK codes, used as an AllergyIntolerance causative agent. Placeholder system URI; the national OID is not yet pinned."
-* ^status = #draft
+Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.750 (G-Standaard generieke namen, bestand 750). Accepted on input; not emitted."
+* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk"
+* ^status = #retired
 * ^content = #not-present
 * ^caseSensitive = true
 
 CodeSystem: GStandaardOggrp
 Id: gstandaard-oggrp
-Title: "G-Standaard OGGrp (overgevoeligheidsgroep)"
-Description: "G-Standaard hypersensitivity group codes, used as an AllergyIntolerance causative agent. Placeholder system URI; the national OID is not yet pinned."
-* ^status = #draft
+// Pinned to the pre-move host on purpose; see above.
+Title: "G-Standaard OGGrp (ongewenste medicatiegroep)"
+Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.902.122 (G-standaard Ongewenste medicatiegroepen, thesaurus 122). Accepted on input; not emitted."
+* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-oggrp"
+* ^status = #retired
 * ^content = #not-present
 * ^caseSensitive = true
 
 CodeSystem: GStandaardContraIndicatie
 Id: gstandaard-contraindicatie
+// Pinned to the pre-move host on purpose; see above.
 Title: "G-Standaard contra-indicatie (CICode)"
-Description: "G-Standaard contra-indication codes. Placeholder system URI; the national OID is not yet pinned."
-* ^status = #draft
+Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.902.40 (G-Standaard Contra Indicaties, thesaurus 40). Accepted on input; not emitted."
+* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie"
+* ^status = #retired
 * ^content = #not-present
 * ^caseSensitive = true
 
@@ -89,6 +107,10 @@ Id: allergy-causative-agent
 Title: "Allergy causative agent (SSK, SNK, OGGrp)"
 Description: "Causative agents fhir-hub routes to Prescriptor. Which member carries which subsystem is set by prescriptor-api's OpenSessionRequestBuilder.getAllergies."
 * ^status = #draft
+* include codes from system $ssk
+* include codes from system $snk
+* include codes from system $oggrp
+// Deprecated, accepted while integrators migrate.
 * include codes from system GStandaardSsk
 * include codes from system GStandaardSnk
 * include codes from system GStandaardOggrp
@@ -98,8 +120,10 @@ Id: contra-indication
 Title: "Contra-indication (CICode or ICPC-1 NL)"
 Description: "Contra-indications fhir-hub routes to Prescriptor, as either a G-Standaard CICode or an ICPC-1 NL code."
 * ^status = #draft
-* include codes from system GStandaardContraIndicatie
+* include codes from system $cicode
 * include codes from system $icpc
+// Deprecated, accepted while integrators migrate.
+* include codes from system GStandaardContraIndicatie
 
 ValueSet: MedicationCodeVS
 Id: medication-code

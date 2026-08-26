@@ -6,7 +6,7 @@
   "title": "NHG Tabel 45 Diagnostische bepalingen",
   "description": "The 8-position sleutelcode: memo (1-4), materiaal (5-6), bijzonderheid (7-8). One coding, not three — the combination is the identity of the determination.",
   "version": "0.1.0",
-  "url": "http://digitalis.nl/fhir/ValueSet/nhg-tabel-45",
+  "url": "http://spec.digitalis.nl/fhir/ValueSet/nhg-tabel-45",
   "compose": {
     "include": [
       {

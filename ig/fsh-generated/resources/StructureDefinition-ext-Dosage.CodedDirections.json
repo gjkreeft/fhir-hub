@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "ext-Dosage.CodedDirections",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
   "version": "0.1.0",
   "name": "CodedDirections",
   "title": "Coded directions (NHG Tabel 25)",
@@ -36,7 +36,7 @@
       {
         "id": "Extension.url",
         "path": "Extension.url",
-        "fixedUri": "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+        "fixedUri": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
       },
       {
         "id": "Extension.value[x]",

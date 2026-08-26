@@ -1,11 +1,11 @@
 {
   "resourceType": "CodeSystem",
-  "status": "draft",
+  "status": "retired",
   "content": "not-present",
   "name": "GStandaardOggrp",
   "id": "gstandaard-oggrp",
-  "title": "G-Standaard OGGrp (overgevoeligheidsgroep)",
-  "description": "G-Standaard hypersensitivity group codes, used as an AllergyIntolerance causative agent. Placeholder system URI; the national OID is not yet pinned.",
+  "title": "G-Standaard OGGrp (ongewenste medicatiegroep)",
+  "description": "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.902.122 (G-standaard Ongewenste medicatiegroepen, thesaurus 122). Accepted on input; not emitted.",
   "version": "0.1.0",
   "url": "http://digitalis.nl/fhir/CodeSystem/gstandaard-oggrp",
   "caseSensitive": true

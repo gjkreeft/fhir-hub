@@ -13,16 +13,16 @@ package nl.digitalis.fhirhub.fhir;
 public final class Profiles {
 
 	public static final String FORMULARY_SESSION_INPUT =
-			"http://digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput";
+			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput";
 
 	public static final String CREATERX_SESSION_INPUT =
-			"http://digitalis.nl/fhir/StructureDefinition/fhirhub-CreateRxSessionInput";
+			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-CreateRxSessionInput";
 
 	public static final String SESSION_OUTPUT =
-			"http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionOutput";
+			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionOutput";
 
 	public static final String RESULT_BUNDLE =
-			"http://digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle";
+			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle";
 
 	private Profiles() {
 	}

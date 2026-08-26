@@ -22,6 +22,50 @@ public final class Systems {
 	/** G-Standaard thesaurus basiseenheden — the system for supply units such as "ST". */
 	public static final String G_STANDAARD_BASISEENHEID = "urn:oid:2.16.840.1.113883.2.4.4.1.900.2";
 
+	/**
+	 * G-Standaard SSK — stofnaamcode in combination with route of administration.
+	 *
+	 * <p>Pinned from Nictiz's own published artifacts rather than the HL7 NL register summary,
+	 * which does not list it: the {@code zib2020} package carries a CodeSystem at this OID
+	 * titled "G-standaard Stofnaamcode i.c.m. toedieningsweg (SSK)", and the DECOR ValueSet
+	 * {@code …60.40.2.8.2.13} (VeroorzakendeStofSSKCodelijst) includes it. That ValueSet is one
+	 * of the five that make up the AllergyIntolerance CausativeAgent binding
+	 * {@code …60.121.11.2}.
+	 */
+	public static final String G_STANDAARD_SSK = "urn:oid:2.16.840.1.113883.2.4.4.1.725";
+
+	/**
+	 * G-Standaard SNK — stofnaamcode (generic name, bestand 750).
+	 *
+	 * <p>The only one of the four that the public HL7 NL OID register does list, as "G-Standaard
+	 * generieke namen (Bestand 750)". Nictiz's VeroorzakendeStofSNKCodelijst
+	 * ({@code …60.40.2.8.2.14}) uses the same OID.
+	 */
+	public static final String G_STANDAARD_SNK = "urn:oid:2.16.840.1.113883.2.4.4.1.750";
+
+	/**
+	 * G-Standaard OGGrp — thesaurus 122, "Ongewenste medicatiegroepen".
+	 *
+	 * <p><strong>The one mapping here that is inferred rather than stated.</strong> Nothing
+	 * published by Nictiz or HL7 NL uses the token {@code OGGrp}, so the identification rests on
+	 * three things: thesaurus 122 is the only group-level G-Standaard system Nictiz publishes at
+	 * all; it is the third G-Standaard member of the CausativeAgent binding, alongside exactly
+	 * the SSK and SNK that {@code prescriptor-api}'s {@code getAllergies} pairs with it; and the
+	 * abbreviation fits "ongewenste groep" rather than the "overgevoeligheidsgroep" this file
+	 * once guessed. Confirm against a G-Standaard bestandsbeschrijving before relying on it for
+	 * anything that cannot be corrected later.
+	 */
+	public static final String G_STANDAARD_OGGRP = "urn:oid:2.16.840.1.113883.2.4.4.1.902.122";
+
+	/**
+	 * G-Standaard contra-indications, thesaurus 40.
+	 *
+	 * <p>From the CodeSystem in Nictiz's {@code zib2020} package titled "G-Standaard Contra
+	 * Indicaties (Tabel 40)", which is the sole member of MedicatieContraIndicatieNaamCodelijst
+	 * ({@code …60.40.2.9.14.1}) — the required binding on {@code nl-core-MedicationContraIndication}.
+	 */
+	public static final String G_STANDAARD_CONTRA_INDICATIE = "urn:oid:2.16.840.1.113883.2.4.4.1.902.40";
+
 	/** ICPC-1 NL, including thesaurus. */
 	public static final String ICPC_1_NL = "urn:oid:2.16.840.1.113883.2.4.4.31.1";
 
@@ -49,7 +93,7 @@ public final class Systems {
 	 * onder Opiumwet; afhandeling als UR, 107 = grondstof valt onder Opiumwet in volle omvang.
 	 */
 	public static final String G_STANDAARD_BIJZONDER_KENMERK =
-			"http://digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk";
+			"http://spec.digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk";
 
 	private Systems() {
 	}

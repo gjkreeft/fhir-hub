@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-Condition",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Condition",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Condition",
   "version": "0.1.0",
   "name": "FhirHubCondition",
   "title": "fhir-hub Condition",
@@ -26,12 +26,12 @@
             "severity": "error",
             "human": "An ICPC-1 NL code is a letter and two digits, optionally followed by a dot and two more (A01, U71.01).",
             "expression": "coding.where(system = 'urn:oid:2.16.840.1.113883.2.4.4.31.1').all(code.matches('^[A-Z][0-9]{2}(\\\\.[0-9]{2})?$'))",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
           }
         ],
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/contra-indication"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/contra-indication"
         }
       },
       {

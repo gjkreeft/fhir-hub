@@ -3,7 +3,7 @@
   "id": "ExampleSessionOutput",
   "meta": {
     "profile": [
-      "http://digitalis.nl/fhir/StructureDefinition/fhirhub-SessionOutput"
+      "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SessionOutput"
     ]
   },
   "parameter": [

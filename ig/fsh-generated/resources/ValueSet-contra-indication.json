@@ -6,14 +6,17 @@
   "title": "Contra-indication (CICode or ICPC-1 NL)",
   "description": "Contra-indications fhir-hub routes to Prescriptor, as either a G-Standaard CICode or an ICPC-1 NL code.",
   "version": "0.1.0",
-  "url": "http://digitalis.nl/fhir/ValueSet/contra-indication",
+  "url": "http://spec.digitalis.nl/fhir/ValueSet/contra-indication",
   "compose": {
     "include": [
       {
-        "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie"
+        "system": "urn:oid:2.16.840.1.113883.2.4.4.1.902.40"
       },
       {
         "system": "urn:oid:2.16.840.1.113883.2.4.4.31.1"
+      },
+      {
+        "system": "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie"
       }
     ]
   }

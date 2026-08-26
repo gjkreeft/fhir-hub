@@ -19,7 +19,7 @@ Usage: #inline
 * patient.extension[0].valueCode = #unknown
 // Required by base R4 invariant ait-1, and likewise not read by fhir-hub.
 * clinicalStatus = http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical#active
-* code.coding[0].system = "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk"
+* code.coding[0].system = "urn:oid:2.16.840.1.113883.2.4.4.1.750"
 * code.coding[0].code = #10499
 
 Instance: ExampleContraIndication
@@ -27,7 +27,7 @@ InstanceOf: FhirHubCondition
 Usage: #inline
 * subject.extension[0].url = "http://hl7.org/fhir/StructureDefinition/data-absent-reason"
 * subject.extension[0].valueCode = #unknown
-* code.coding[0].system = "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie"
+* code.coding[0].system = "urn:oid:2.16.840.1.113883.2.4.4.1.902.40"
 * code.coding[0].code = #228
 
 Instance: ExampleCurrentMedication
@@ -96,7 +96,7 @@ Usage: #inline
 * medicationCodeableConcept.coding[1].system = "urn:oid:2.16.840.1.113883.2.4.4.1"
 * medicationCodeableConcept.coding[1].code = #111111
 * medicationCodeableConcept.text = "PARACETAMOL TABLET 500MG"
-* dosageInstruction[0].extension[0].url = "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+* dosageInstruction[0].extension[0].url = "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
 * dosageInstruction[0].extension[0].valueString = "3-4D1S; gedurende max. 1 maand"
 * dosageInstruction[0].text = "3 tot 4 maal daags 1 stuk; gedurende max. 1 maand"
 * dispenseRequest.quantity.value = 15

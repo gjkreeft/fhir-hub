@@ -1,7 +1,7 @@
 {
   "resourceType": "StructureDefinition",
   "id": "fhirhub-PrescriptionInput",
-  "url": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput",
   "version": "0.1.0",
   "name": "FhirHubPrescriptionInput",
   "title": "fhir-hub prescription input",
@@ -30,12 +30,12 @@
             "severity": "error",
             "human": "At least one coding must be a PRK or an HPK: an ATC alone cannot be dispensed against.",
             "expression": "coding.where(system = 'urn:oid:2.16.840.1.113883.2.4.4.10' or system = 'urn:oid:2.16.840.1.113883.2.4.4.7').exists()",
-            "source": "http://digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
           }
         ],
         "binding": {
           "strength": "required",
-          "valueSet": "http://digitalis.nl/fhir/ValueSet/prescription-input-medication"
+          "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/prescription-input-medication"
         }
       },
       {
@@ -49,7 +49,7 @@
           {
             "code": "Extension",
             "profile": [
-              "http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
+              "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections"
             ]
           }
         ]
