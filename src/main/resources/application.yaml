@@ -1,6 +1,10 @@
 spring:
   application:
     name: fhir-hub
+  main:
+    # No ASCII banner. The startup lines that matter are the port, the validator warm-up
+    # time, and the Hikari pool; the banner only pushes them further down the log.
+    banner-mode: "off"
 
 server:
   port: ${PORT:8080}
@@ -18,6 +22,29 @@ logging:
     nl.digitalis.fhirhub: ${LOG_LEVEL:INFO}
     # HAPI is chatty at startup about every registered operation.
     ca.uhn.fhir: WARN
+  pattern:
+    # Boot's default prefix is ~95 characters before the message; this one is ~46. Dropped:
+    # the date and UTC offset (a container runtime stamps its own), the PID, the separator,
+    # the application name, and the thread.
+    #
+    #   14:03:11.123 INFO  PrescriptorClient        : Session created for organization ...
+    #
+    # Tokens, so this can be edited without hunting the Logback manual:
+    #   %d{HH:mm:ss.SSS}    time only; %d{yyyy-MM-dd HH:mm:ss.SSS} brings the date back
+    #   %-5p                level, left-padded to 5
+    #   %-24.-24logger{0}   logger name, padded and truncated to 24. {0} keeps only the
+    #                       class, {39} gives n.d.f.p.PrescriptorClient. The `.-24`
+    #                       truncates from the END: `.24` truncates from the front and
+    #                       turns ExceptionHandlingInterceptor into ptionHandlingInterceptor.
+    #                       Drop `.-24` to never truncate (ragged message column). 24 fits
+    #                       every class here except PassThroughAuthenticationProvider.
+    #   %m %n               message, newline
+    #   %wex                exception; %wEx adds jar + version to every stack frame
+    #   %clr(x){cyan}       colour; an empty {} means "colour by level"
+    #
+    # Add [%15.15t] after the level to follow interleaved concurrent requests (+17 chars).
+    # Defining a logback.xml would silently override this — pick one place, not both.
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p){} %clr(%-24.-24logger{0}){cyan} %clr(:){faint} %m%n%wex"
 
 gstandaard:
   # Read-only reference lookup: resolves current medication (PRK/HPK) to the PRK+GPK pair

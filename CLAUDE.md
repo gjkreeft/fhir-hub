@@ -213,6 +213,18 @@ before asserting a difference — several claimed corrections have since been fi
 
 - `$session-result` ends the session upstream, so a second call returns 401. Inherited from
   Prescriptor, documented in the README under *Known quirks*.
+- **`Unknown element 'author' found while parsing`, three times at startup.** Nothing to do with
+  this codebase. It comes from `HapiFhirStorageResponseCode.json`, a CodeSystem shipped inside
+  `hapi-fhir-base` and loaded lazily by `DefaultProfileValidationSupportBundleStrategy` the first
+  time the validator resolves a ValueSet — so since the validator warm-up, at every boot. The
+  file carries `CodeSystem.author`, which exists in R5 but not in R4, so the R4 parser drops it
+  and the lenient handler says so. It is HAPI's own storage-response CodeSystem, irrelevant to a
+  stateless proxy, and the element it drops is a name.
+
+  **Do not silence `ca.uhn.fhir.parser.LenientErrorHandler` to make it go away.** Inbound request
+  bodies are parsed by the same lenient handler and log through the same logger, so muting it
+  also mutes the only signal that an integrator is sending elements this interface silently
+  ignores — which is precisely the kind of quiet data loss the rest of this file is about.
 
 ## Testing
 
