@@ -105,27 +105,6 @@ class SessionParametersMapperTest {
 				.satisfies(item -> assertThat(item.codeSystem()).isEqualTo("CICode"));
 	}
 
-	/**
-	 * The Digitalis URIs were the interface's own placeholders before the national OIDs were
-	 * pinned, and sixteen integrating systems already send them. Retiring them is a decision
-	 * about those integrators; until then, dropping support silently thins a surveillance list.
-	 */
-	@Test
-	void stillAcceptsTheDeprecatedDigitalisSystemUris() {
-		Parameters parameters = parameters();
-		parameters.addParameter().setName(SessionParametersMapper.PARAM_ALLERGY)
-				.setResource(new AllergyIntolerance().setCode(concept(CodeSystemRegistry.DIGITALIS_SNK, "10499")));
-		parameters.addParameter().setName(SessionParametersMapper.PARAM_CONDITION)
-				.setResource(new Condition().setCode(concept(CodeSystemRegistry.DIGITALIS_CI_CODE, "228")));
-
-		SessionRequest request = mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY));
-
-		assertThat(request.patient().allergies()).singleElement()
-				.satisfies(item -> assertThat(item.codeSystem()).isEqualTo("SNK"));
-		assertThat(request.patient().contraIndications()).singleElement()
-				.satisfies(item -> assertThat(item.codeSystem()).isEqualTo("CICode"));
-	}
-
 	@Test
 	void rejectsACodingInASystemThatIsNotRouted() {
 		Parameters parameters = parameters();
@@ -253,32 +232,9 @@ class SessionParametersMapperTest {
 		assertThat(prescription.directions()).isEqualTo("3-4D1S; gedurende max. 1 maand");
 	}
 
-	/**
-	 * A prescription issued before the canonical moved to spec.digitalis.nl carries the old
-	 * extension URL, and a host may hand exactly that back. Failing to read it would fall back
-	 * to Dosage.text and silently lose the coded instruction rather than erroring.
-	 */
+	/** The URL the extension is emitted at is on the wire, so it is pinned rather than assumed. */
 	@Test
-	void readsCodedDirectionsFromThePreMoveExtensionUrl() {
-		MedicationRequest prescription = existingPrescription();
-		prescription.getDosageInstructionFirstRep().getExtension().clear();
-		prescription.getDosageInstructionFirstRep().addExtension(
-				DigitalisExtensions.LEGACY_CODED_DIRECTIONS,
-				new StringType("3-4D1S; gedurende max. 1 maand"));
-		prescription.getDosageInstructionFirstRep().setText("ignored when the extension is present");
-
-		Parameters parameters = parameters();
-		parameters.addParameter().setName(SessionParametersMapper.PARAM_PRESCRIPTION)
-				.setResource(prescription);
-
-		assertThat(mapper.toSessionRequest(bind(parameters, SessionType.CREATE_RX))
-				.prescription().directions())
-				.isEqualTo("3-4D1S; gedurende max. 1 maand");
-	}
-
-	/** The old URL is accepted, never produced. */
-	@Test
-	void emitsOnlyTheCurrentExtensionUrl() {
+	void emitsTheCodedDirectionsExtensionAtItsCanonicalUrl() {
 		assertThat(new T25DosageMapper()
 				.toDosage(new nl.digitalis.fhirhub.model.Directions("tabel25", "3-4D1S", "drie maal daags"))
 				.getExtension())

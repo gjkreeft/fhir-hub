@@ -20,12 +20,18 @@ import ca.uhn.fhir.validation.ValidationResult;
 /**
  * Validates a payload against one of the profiles in {@code ig/} and turns a failure into a 400.
  *
- * <p>This runs <em>after</em> the interface's own checks, not instead of them. The hand-written
- * rejections in {@code SessionParametersMapper} say things like "Patient.gender must be 'male',
- * 'female' or 'unknown'; Prescriptor cannot interpret 'other'" — they name the upstream
- * consequence, which the validator cannot know. The validator catches the other half: the
- * elements base FHIR requires that this interface never reads, and a parameter name that is
- * subtly wrong. Losing the specific messages by validating first would be a bad trade.
+ * <p>This runs <em>before</em> the interface's own checks — see
+ * {@code SessionOperationProvider.openSession} — so an integrator gets every problem in one
+ * OperationOutcome rather than one per round trip, and nothing reaches the G-Standaard lookup or
+ * the call upstream until the body conforms.
+ *
+ * <p>The order costs something, and it is a deliberate trade rather than an oversight. For the
+ * handful of rules both layers check, the validator's generic message is the one the caller sees:
+ * {@code SessionParametersMapper} would have said "Patient.gender must be 'male', 'female' or
+ * 'unknown'; Prescriptor cannot interpret 'other'", naming a consequence the validator cannot
+ * know, and instead the caller gets a binding error. The mapper's messages still surface for what
+ * a profile cannot express — an unresolvable G-Standaard code, a non-numeric product code. Swap
+ * the two calls in the provider to prefer the specific message over the complete list.
  *
  * <p>Only {@code ERROR} and {@code FATAL} are rejected. Warnings are expected in normal
  * operation — the G-Standaard code systems cannot be expanded, so every coding in one produces

@@ -1,7 +1,8 @@
 # fhir-hub Implementation Guide
 
 Conformance artifacts for the payloads described in `../IMPLEMENTATION_GUIDE.md`. FSH source in
-`input/fsh/`; `fsh-generated/` is a build output and is not committed.
+`input/fsh/`; `fsh-generated/` is a build output, and is committed because the Maven build copies
+it into the jar — see *These profiles ARE enforced at runtime* below.
 
 ```bash
 npm install          # once
@@ -16,13 +17,16 @@ curl -sL -o .pkg/validator_cli.jar \
 
 java -jar .pkg/validator_cli.jar -version 4.0.1 -ig fsh-generated/resources \
   fsh-generated/resources/Parameters-ExampleFormularySessionInput.json \
+  fsh-generated/resources/Parameters-ExampleCreateRxSessionInput.json \
   fsh-generated/resources/Parameters-ExampleSessionOutput.json \
   fsh-generated/resources/Bundle-ExampleResultBundle.json
 ```
 
-All three must report `0 errors`. The warnings that remain are expected and benign: the
-G-Standaard code systems are `content: not-present` so codes cannot be checked, the
-`data-absent-reason` references have no display, and `dom-6` wants a narrative.
+All four must report `0 errors`. `IgExampleConformanceTest` makes the same check part of
+`mvn test`, so this is the way to see the detail rather than the way to find out. The warnings
+that remain are expected and benign: the G-Standaard code systems are not distributed, so codes
+cannot be checked; the `data-absent-reason` references have no display; and `dom-6` wants a
+narrative.
 
 ## Things worth knowing
 
@@ -32,9 +36,12 @@ G-Standaard code systems are `content: not-present` so codes cannot be checked, 
 editing `canonical:` in `sushi-config.yaml`, is a silent breaking change for every payload in the
 field. `IgCanonicalsTest` in the Maven build fails if the two drift apart.
 
-**The four retired G-Standaard code systems carry an explicit `^url` on `digitalis.nl`** and must
-not follow the canonical. They name what integrators already send; moving them would create a
-third form rather than retiring the second.
+**Do not define the G-Standaard code systems here.** The tables are licensed and cannot be
+distributed, so a definition would have to be `content: not-present` — and a value set that
+includes such a system cannot be expanded, which turns every coding in it into a validation
+error. Left undefined, the system is unknown to the validator and its codings become warnings,
+which is the only way the `required` bindings in `terminology.fsh` can be satisfied.
+`TerminologyEnforcementTest` in the Maven build fails if one is added.
 
 **Hosting.** Nothing is served at `http://spec.digitalis.nl/fhir/…` yet. The intended layout is
 static files, `application/fhir+json` under content negotiation with an HTML rendering for
@@ -42,9 +49,6 @@ browsers, current at `/fhir/…` and versioned snapshots at `/fhir/<version>/…
 
 **The parent is plain R4, not nl-core**, for reasons that were checked rather than assumed. See
 *Profiles* in `../README.md`.
-
-**The four G-Standaard subsystem URIs are placeholders.** The national OIDs are not yet pinned.
-Do not publish this IG externally before they are — see *Open items* in `../README.md`.
 
 **These profiles ARE enforced at runtime**, so editing one changes what the service accepts.
 `fsh-generated/resources` is committed and copied into the jar by the Maven build — the Docker

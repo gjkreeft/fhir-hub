@@ -1,0 +1,118 @@
+{
+  "resourceType": "Parameters",
+  "id": "ExampleCreateRxSessionInput",
+  "meta": {
+    "profile": [
+      "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-CreateRxSessionInput"
+    ]
+  },
+  "parameter": [
+    {
+      "name": "patient",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ExamplePatient",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+          ]
+        },
+        "gender": "female",
+        "birthDate": "1980-01-01"
+      }
+    },
+    {
+      "name": "endSessionUrl",
+      "valueUrl": "https://host.example/done"
+    },
+    {
+      "name": "xisId",
+      "valueString": "xis-001"
+    },
+    {
+      "name": "xisVersion",
+      "valueString": "1.0"
+    },
+    {
+      "name": "medicationStatement",
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "ExampleCurrentMedication",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+          ]
+        },
+        "status": "active",
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
+              "code": "18996"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "prescription",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "ExamplePrescriptionInput",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+          ]
+        },
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
+              "code": "18996",
+              "display": "PARACETAMOL ZETPIL 1000MG"
+            },
+            {
+              "system": "http://www.whocc.no/atc",
+              "code": "N02BE01"
+            }
+          ]
+        },
+        "dosageInstruction": [
+          {
+            "extension": [
+              {
+                "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+                "valueString": "3-4D1S; gedurende max. 1 maand"
+              }
+            ]
+          }
+        ],
+        "dispenseRequest": {
+          "quantity": {
+            "value": 15,
+            "system": "urn:oid:2.16.840.1.113883.2.4.4.1.900.2",
+            "code": "ST"
+          }
+        }
+      }
+    }
+  ]
+}

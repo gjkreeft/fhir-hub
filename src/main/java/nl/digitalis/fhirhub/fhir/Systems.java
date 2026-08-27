@@ -51,9 +51,9 @@ public final class Systems {
 	 * three things: thesaurus 122 is the only group-level G-Standaard system Nictiz publishes at
 	 * all; it is the third G-Standaard member of the CausativeAgent binding, alongside exactly
 	 * the SSK and SNK that {@code prescriptor-api}'s {@code getAllergies} pairs with it; and the
-	 * abbreviation fits "ongewenste groep" rather than the "overgevoeligheidsgroep" this file
-	 * once guessed. Confirm against a G-Standaard bestandsbeschrijving before relying on it for
-	 * anything that cannot be corrected later.
+	 * abbreviation fits "ongewenste groep" rather than "overgevoeligheidsgroep". Confirm against
+	 * a G-Standaard bestandsbeschrijving before relying on it for anything that cannot be
+	 * corrected later.
 	 */
 	public static final String G_STANDAARD_OGGRP = "urn:oid:2.16.840.1.113883.2.4.4.1.902.122";
 

@@ -10,10 +10,10 @@ import nl.digitalis.fhirhub.model.PrescriptorCredentials;
 /**
  * Lifts the Prescriptor credentials off the HTTP layer.
  *
- * <p>This is the whole of the "authentication moves out of the message" change: the practice
- * id and license key used to be fields in the request body, and are now the two halves of the
- * Basic credential. Everything downstream is unchanged — they still travel to Prescriptor as
- * the PracticeID and LicenseKey members of the XML-RPC call.
+ * <p>This is the whole of "authentication lives on the HTTP layer": the JSON interface carries
+ * the practice id and license key as fields in the request body, and here they are the two
+ * halves of the Basic credential. Downstream nothing differs — they travel to Prescriptor as the
+ * PracticeID and LicenseKey members of the XML-RPC call either way.
  */
 @Component
 public class CredentialsResolver {

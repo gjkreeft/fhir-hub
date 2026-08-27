@@ -7,11 +7,10 @@ package nl.digitalis.fhirhub.fhir;
  * zib2020 or Medicatieproces 9 covers either — so these are additions rather than
  * duplications of national work.
  *
- * <p>The canonical base moved from {@code http://digitalis.nl/fhir} to
- * {@code http://spec.digitalis.nl/fhir} so that the artifacts have a host of their own — see
- * README, <em>Profiles</em>. Only {@link #CODED_DIRECTIONS} needed a compatibility shim, because
- * it is the one extension this interface reads back off a payload a host round-trips; see
- * {@link #LEGACY_CODED_DIRECTIONS}.
+ * <p>Both live under the canonical {@code http://spec.digitalis.nl/fhir}, which the artifacts
+ * have to themselves — see README, <em>Profiles</em>. {@link #CODED_DIRECTIONS} is the one
+ * extension this interface reads back off a payload a host round-trips, so its URL is on the
+ * wire in both directions and cannot be changed without breaking a round trip.
  */
 public final class DigitalisExtensions {
 
@@ -31,20 +30,6 @@ public final class DigitalisExtensions {
 	 */
 	public static final String CODED_DIRECTIONS =
 			"http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections";
-
-	/**
-	 * The pre-move URL of {@link #CODED_DIRECTIONS}, still accepted on input and never emitted.
-	 *
-	 * <p>This one extension is read back: a host may hand a prescription it received earlier
-	 * straight into {@code $createrx-session}, and a prescription issued before the move carries
-	 * the old URL. Dropping it would silently fall back to {@code Dosage.text} and lose the
-	 * coded instruction — a quiet downgrade of the dosing, not a visible failure, which is the
-	 * kind this interface refuses to ship.
-	 *
-	 * <p>Retire it when no stored prescription can still predate the move.
-	 */
-	public static final String LEGACY_CODED_DIRECTIONS =
-			"http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections";
 
 	/**
 	 * Opiumwet classification of the prescribed product, as a G-Standaard bijzonder kenmerk.

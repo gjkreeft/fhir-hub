@@ -116,6 +116,10 @@ image of what `$session-result` returns, so a host can hand back what it receive
 ```jsonc
 { "name": "prescription", "resource": {
     "resourceType": "MedicationRequest",
+    "status": "active", "intent": "order",
+    "subject": { "extension": [ {
+      "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+      "valueCode": "unknown" } ] },
     "medicationCodeableConcept": { "coding": [
       { "system": "urn:oid:2.16.840.1.113883.2.4.4.10", "code": "18996",
         "display": "PARACETAMOL ZETPIL 1000MG" },
@@ -130,6 +134,12 @@ image of what `$session-result` returns, so a host can hand back what it receive
 
 The coded directions are read from the `CodedDirections` extension, falling back to
 `Dosage.text`. Sending it to `$formulary-session` is a 400.
+
+`status`, `intent` and `subject` are mandatory in base R4 and unread here, so they carry the same
+`data-absent-reason` filler as everything else the host has nothing to point at. The mirror is not
+quite perfect in one place: the product must be a PRK or an HPK, and `$session-result` may have
+returned the prescription at GPK level — that one has to be resolved before it can be handed
+back.
 
 ## How the JSON interface maps onto FHIR
 
@@ -223,15 +233,13 @@ files by whoever owns the IG, and `spec.` rather than `fhir.` so the name stays 
 running service and leaves room under `/fhir` for the other contract Digitalis publishes,
 `json-interface`'s OpenAPI. Nothing is served there yet — see *Open items*.
 
-The four retired G-Standaard code system URLs stay on `digitalis.nl`: a retired identifier does
-not move, and relocating them would invent a third form to support rather than retiring the
-second.
-
 StructureDefinitions for every payload live in `ig/`, written in FSH and built with SUSHI. They
 cover the two session inputs, the session output, the `$session-result` Bundle, the five
-resources a host sends in, the two Digitalis extensions, and the terminology behind them. Every
-example in `IMPLEMENTATION_GUIDE.md` is also an instance in the IG and validates clean against
-the HL7 validator, so the documentation cannot drift from the profiles.
+resources a host sends in, the two Digitalis extensions, and the terminology behind them. The
+payloads in `IMPLEMENTATION_GUIDE.md` are also instances in the IG, and
+`IgExampleConformanceTest` validates each one against the profile it claims on every build — so
+the documentation cannot drift from the profiles. SUSHI itself checks nothing: it converts FSH to
+JSON, and one example had already drifted before that test existed.
 
 **The parent is plain R4, not nl-core.** That is a checked decision, not a shortcut. Verified
 against `nictiz.fhir.nl.r4.nl-core` `0.12.1-beta.1`:
@@ -252,11 +260,11 @@ Every published nl-core R4 version is also a pre-release (`beta`, `rc`, `labtria
 today pins these profiles to a moving parent for a claim we cannot yet make about four of the
 five resources.
 
-`meta.profile` is still not asserted on any resource. Asserting a profile that is only half met
-is worse than asserting nothing: validators reject it, and integrators will have trusted the
-claim. The blocker for the output side is now gone, though — the Bundle `ResultBundleMapper`
-produces validates clean against `fhirhub-ResultBundle` — so asserting it there is a decision
-rather than a dependency.
+`meta.profile` is not asserted on any resource. Asserting a profile that is only half met is
+worse than asserting nothing: validators reject it, and integrators will have trusted the claim.
+The output side is not blocked on that, though — the Bundle `ResultBundleMapper` produces
+validates clean against `fhirhub-ResultBundle` — so asserting it there is a decision rather than
+a dependency.
 
 ### Enforcement
 
@@ -317,7 +325,7 @@ exists so that no response in this API is un-parseable by a FHIR client.
 ## Build and run
 
 ```bash
-mvn test          # 63 tests; no network and no database needed
+mvn test          # 83 tests; no network and no database needed
 mvn spring-boot:run
 docker compose up --build
 ```
@@ -355,11 +363,12 @@ Changing them alters clinical behaviour and needs its own decision.
 
 ## Open items
 
-- **Retire the deprecated Digitalis code system URIs, and the bare-token form.** The national
-  OIDs are pinned (see *Code systems* in the Implementation Guide) and are what fhir-hub emits,
-  but the two older forms are still accepted so that nothing an integrator sends today breaks.
-  Retiring them is a decision about the integrators, not about the code: agree a date, publish
-  it, then delete the entries from `CodeSystemRegistry` and the value sets in `ig/`.
+- **Decide whether the bare upstream token stays routable.** `CodeSystemRegistry` maps `PRK`,
+  `SSK`, `ICPC` and the rest as a `Coding.system`, because that is the form `json-interface`
+  carries in a field of its own, but no profile admits one — so it is reachable only with
+  `fhirhub.validation.enabled=false`, which `TerminologyEnforcementTest` pins. Either commit to
+  that as the documented lenient-input path, or delete the entries and let the mapper reject the
+  token as an unrouted system.
 - **Confirm the OGGrp mapping against a G-Standaard bestandsbeschrijving.** Thesaurus 122
   ("Ongewenste medicatiegroepen") is an inference — it is the only group-level G-Standaard
   system Nictiz publishes and the third G-Standaard member of the CausativeAgent binding
@@ -376,9 +385,9 @@ Changing them alters clinical behaviour and needs its own decision.
   change policy needs to be agreed before the first integrator goes live.
 - **A sandbox for integrator self-testing.** `../tests-digitalisrx-testpatients` is the
   natural seed.
-- **No resource sets `meta.profile`.** The table above describes intent, not behaviour. The
-  constants class that held these URLs was never referenced by any mapper and has been removed;
-  the URLs are recorded above so the research is not lost. Assert them where each resource
-  genuinely validates clean, or say plainly in this section that none are asserted — an
-  integrator should not have to discover that from the payload.
-  Either assert them or correct this section before an integrator relies on the claim.
+- **No resource sets `meta.profile`.** `fhir/Profiles.java` holds the canonicals and the
+  providers pass them to the validator, so every inbound payload is checked against its profile —
+  but nothing this service emits claims one. The Bundle is the one that could: it validates clean
+  against `fhirhub-ResultBundle` (`OutboundPayloadConformanceTest`), so asserting it there is a
+  decision rather than a dependency. The Implementation Guide tells integrators not to route on
+  `meta.profile`; assert it or leave that sentence standing, but do not let the two disagree.

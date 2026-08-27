@@ -47,8 +47,9 @@ public class XmlRpcRequestBuilder {
 				stringMember(struct, "SearchKey", request.icpc());
 			}
 
-			// The level the patient's current medication is supplied at. Fixed at 9 (PRK) until
-			// v2 of the contract; now derived, and 0 when there is no medication to declare.
+			// The level the patient's current medication is supplied at, read off the first
+			// entry: 7 for HPK, 9 for PRK, and 0 when there is no medication to declare. Not a
+			// constant — the level follows the data.
 			intMember(struct, "MedicationType", medicationType(patient));
 			booleanMember(struct, "MedicationCheck", true);
 			stringMember(struct, "PracticeID", credentials.practiceId());

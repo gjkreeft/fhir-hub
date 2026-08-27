@@ -28,16 +28,16 @@ import nl.digitalis.fhirhub.model.SessionType;
  * Guide documents is unchanged.
  *
  * <p>Every parameter is bound, so nothing is missing from the generated definition. Two of them
- * were reshaped to make that possible, both breaking changes made deliberately:
+ * are shaped by that requirement rather than by the domain:
  *
  * <ul>
- * <li>{@code xis} was a multi-part parameter, and HAPI's binder reads only {@code name},
- * {@code value[x]} and {@code resource} — never {@code part}. It is now {@code xisId} and
- * {@code xisVersion}, two plain strings.
- * <li>{@code reason} accepted either a {@code Coding} or a {@code CodeableConcept}. HAPI rejects
- * a polymorphic {@code @OperationParam} outright (HAPI-0361), which is the correct FHIR
- * position — {@code OperationDefinition.parameter.type} is a single code. It is now
- * {@code CodeableConcept} only.
+ * <li>{@code xisId} and {@code xisVersion} are two plain strings rather than one {@code xis}
+ * parameter with {@code id} and {@code version} parts, because HAPI's binder reads only
+ * {@code name}, {@code value[x]} and {@code resource} — never {@code part}, so a multi-part
+ * parameter cannot appear in the generated definition at all.
+ * <li>{@code reason} is a {@code CodeableConcept} and not also a {@code Coding}. HAPI rejects a
+ * polymorphic {@code @OperationParam} outright (HAPI-0361), which is the correct FHIR position:
+ * {@code OperationDefinition.parameter.type} is a single code.
  * </ul>
  */
 public record SessionInputs(

@@ -128,8 +128,8 @@ class XmlRpcRequestBuilderTest {
 	}
 
 	/**
-	 * MedicationType declares the level the patient's current medication is supplied at. It was
-	 * hardcoded to 9 before v2; now it follows the data, and is 0 when there is none.
+	 * MedicationType declares the level the patient's current medication is supplied at. It is
+	 * not a constant: it follows the data, and is 0 when there is none.
 	 */
 	@Test
 	void derivesMedicationTypeFromTheFirstCurrentMedication() {

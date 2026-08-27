@@ -19,64 +19,19 @@ Alias: $cicode    = urn:oid:2.16.840.1.113883.2.4.4.1.902.40
 Alias: $ucum      = http://unitsofmeasure.org
 
 // ---------------------------------------------------------------------------
-// Digitalis-local code systems: DEPRECATED, and kept only for migration.
+// The one code system Digitalis mints. The G-Standaard subsystems are NOT defined here, and
+// must not be: a CodeSystem this IG defines is checked more strictly than one it does not
+// know. The G-Standaard tables are licensed, so any definition would have to be
+// content: not-present, which makes a value set including it unexpandable and turns every
+// coding in it into an error. An entirely unknown system falls to
+// UnknownCodeSystemWarningValidationSupport and becomes a warning instead, which is the only
+// way a required binding onto a licensed table can be satisfied. TerminologyEnforcementTest
+// pins that.
 //
-// The four G-Standaard subsystems below were placeholders while the national OIDs were
-// unpinned. They now are pinned — see Systems.java for the provenance of each — so the value
-// sets further down include the national OID *and* the Digitalis URI, and fhir-hub emits the
-// national one. Send the OIDs.
-//
-// These are not deleted because sixteen integrating systems already send them. Retire them
-// once those integrators have moved; the value sets are where to do it.
-//
-// Note the explicit ^url on each: they stay on the OLD host, digitalis.nl, and do NOT follow
-// the canonical to spec.digitalis.nl. A retired identifier does not move — these URLs exist
-// only to name what integrators already send, and relocating them would invent a third form
-// to support rather than retiring the second.
+// BST401T rubriek 72 is different: it defines exactly these three Opiumwet codes, so it can be
+// content: complete. Prescriptor reports only a yes/no today, so fhir-hub emits only code 2.
 // ---------------------------------------------------------------------------
 
-CodeSystem: GStandaardSsk
-Id: gstandaard-ssk
-// Pinned to the pre-move host on purpose; see above.
-Title: "G-Standaard SSK (stofnaam-samenstelling)"
-Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.725 (G-standaard Stofnaamcode i.c.m. toedieningsweg). Accepted on input; not emitted."
-* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-ssk"
-* ^status = #retired
-* ^content = #not-present
-* ^caseSensitive = true
-
-CodeSystem: GStandaardSnk
-Id: gstandaard-snk
-// Pinned to the pre-move host on purpose; see above.
-Title: "G-Standaard SNK (stofnaam)"
-Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.750 (G-Standaard generieke namen, bestand 750). Accepted on input; not emitted."
-* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-snk"
-* ^status = #retired
-* ^content = #not-present
-* ^caseSensitive = true
-
-CodeSystem: GStandaardOggrp
-Id: gstandaard-oggrp
-// Pinned to the pre-move host on purpose; see above.
-Title: "G-Standaard OGGrp (ongewenste medicatiegroep)"
-Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.902.122 (G-standaard Ongewenste medicatiegroepen, thesaurus 122). Accepted on input; not emitted."
-* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-oggrp"
-* ^status = #retired
-* ^content = #not-present
-* ^caseSensitive = true
-
-CodeSystem: GStandaardContraIndicatie
-Id: gstandaard-contraindicatie
-// Pinned to the pre-move host on purpose; see above.
-Title: "G-Standaard contra-indicatie (CICode)"
-Description: "DEPRECATED placeholder for urn:oid:2.16.840.1.113883.2.4.4.1.902.40 (G-Standaard Contra Indicaties, thesaurus 40). Accepted on input; not emitted."
-* ^url = "http://digitalis.nl/fhir/CodeSystem/gstandaard-contraindicatie"
-* ^status = #retired
-* ^content = #not-present
-* ^caseSensitive = true
-
-// Unlike the four above, this one is complete: BST401T rubriek 72 defines exactly these three
-// Opiumwet codes. Prescriptor reports only a yes/no today, so fhir-hub emits only code 2.
 CodeSystem: GStandaardBijzonderKenmerk
 Id: gstandaard-bijzonder-kenmerk
 Title: "G-Standaard bijzondere kenmerken (Opiumwet)"
@@ -92,14 +47,15 @@ Description: "The Opiumwet subset of G-Standaard bestand BST401T (thesaurus BST9
 // Value sets.
 //
 // Every one of these binds the SYSTEM rather than the code: the G-Standaard tables are
-// licensed and enormous, so their code systems are content: not-present and a validator can
+// licensed and enormous, they are not distributed with these profiles, and so a validator can
 // check only that the coding comes from a system this interface routes. That is exactly the
 // check SessionParametersMapper performs.
 //
-// CodeSystemRegistry additionally accepts the bare upstream token ("SSK", "PRK", "ICPC", ...)
-// as a Coding.system, so a host that has not adopted the URIs is not blocked. That
-// accommodation is deliberately NOT blessed here: it is a migration path, not a conformant
-// payload, and a profile that endorsed it would make the token permanent.
+// CodeSystemRegistry additionally maps the bare upstream token ("SSK", "PRK", "ICPC", ...) as
+// a Coding.system, because that is the form the JSON interface carries. It is deliberately NOT
+// blessed here — it is not a FHIR system, and a profile that endorsed it would make the token
+// permanent — so these required bindings reject it and it is reachable only with validation
+// switched off.
 // ---------------------------------------------------------------------------
 
 ValueSet: AllergyCausativeAgentVS
@@ -110,10 +66,6 @@ Description: "Causative agents fhir-hub routes to Prescriptor. Which member carr
 * include codes from system $ssk
 * include codes from system $snk
 * include codes from system $oggrp
-// Deprecated, accepted while integrators migrate.
-* include codes from system GStandaardSsk
-* include codes from system GStandaardSnk
-* include codes from system GStandaardOggrp
 
 ValueSet: ContraIndicationVS
 Id: contra-indication
@@ -122,8 +74,6 @@ Description: "Contra-indications fhir-hub routes to Prescriptor, as either a G-S
 * ^status = #draft
 * include codes from system $cicode
 * include codes from system $icpc
-// Deprecated, accepted while integrators migrate.
-* include codes from system GStandaardContraIndicatie
 
 ValueSet: MedicationCodeVS
 Id: medication-code
@@ -136,7 +86,7 @@ Description: "Product code levels accepted for current medication. Send one leve
 ValueSet: DispensedMedicationCodeVS
 Id: dispensed-medication-code
 Title: "Prescribed medication code (PRK, GPK, HPK or ATC)"
-Description: "Codings that may appear on a MedicationRequest returned by $session-result. PRK and GPK are always present as a pair; HPK and ATC appear when the upstream supplies them."
+Description: "Codings that may appear on a MedicationRequest returned by $session-result. Exactly one of PRK, GPK and HPK is present — the level the prescription was written at — with an ATC beside it when the upstream supplies one."
 * ^status = #draft
 * include codes from system $prk
 * include codes from system $gpk

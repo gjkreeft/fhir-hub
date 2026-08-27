@@ -29,10 +29,9 @@ import nl.digitalis.fhirhub.model.SessionResult;
  * the reference validator in the path of every response for a payload this service built
  * itself. This test is where that gap is closed instead.
  *
- * <p>It is not hypothetical. Until the profiles were written, every Bundle fhir-hub returned
- * was invalid FHIR: {@code Bundle.entry.fullUrl} is mandatory for anything that is not a
- * transaction or a batch, and nothing set it. No test noticed, because every assertion was
- * about the contents of the entries rather than the shape of the Bundle.
+ * <p>Not hypothetical, and cheap to break: {@code Bundle.entry.fullUrl} is mandatory for
+ * anything that is not a transaction or a batch, and an assertion about the contents of an entry
+ * does not notice the shape of the Bundle around it.
  */
 @SpringBootTest
 class OutboundPayloadConformanceTest {

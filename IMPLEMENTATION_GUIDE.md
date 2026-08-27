@@ -11,14 +11,13 @@ every endpoint with its input and output specification.
   [Moving from the JSON API](#moving-from-the-json-api).
 - **Statelessness** — no session store, so persist the session id yourself, and store the result
   Bundle when you receive it. Nothing can be re-fetched.
-- **Normative status** — this document is the specification. The generated `OperationDefinition`s
-  describe every input parameter with its type and cardinality, so a request can be generated from
-  them; there is no `StructureDefinition` you can validate a payload against yet. See
-  [Current limitations](#current-limitations).
+- **Normative status** — this document is the specification in prose. The machine-readable form is
+  the implementation guide published under the canonical `http://spec.digitalis.nl/fhir`: every
+  payload described here has a `StructureDefinition` you can validate against, and every request is
+  checked against its profile before it is processed. See [Profiles](#profiles).
 
 ## Table of contents
 
-- [Changes to the payloads](#changes-to-the-payloads)
 - [Global flow](#global-flow)
 - [Conventions](#conventions)
 - [Authentication](#authentication)
@@ -33,41 +32,6 @@ every endpoint with its input and output specification.
 - [Behaviour to design around](#behaviour-to-design-around)
 - [Moving from the JSON API](#moving-from-the-json-api)
 - [Current limitations](#current-limitations)
-
-## Changes to the payloads
-
-If you built against an earlier draft, these are the edits you need.
-
-**The canonical moved to `http://spec.digitalis.nl/fhir`.** Every extension URL, profile URL and
-Digitalis-minted code system now lives under that host instead of `http://digitalis.nl/fhir` —
-the artifacts get a host of their own, separate from the corporate website and from whatever
-serves this API.
-
-| | Was | Now |
-| --- | --- | --- |
-| Coded directions extension | `http://digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections` | `http://spec.digitalis.nl/fhir/…` |
-| Opiumwet extension | `http://digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification` | `http://spec.digitalis.nl/fhir/…` |
-| Bijzonder kenmerk code system | `http://digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk` | `http://spec.digitalis.nl/fhir/…` |
-
-This affects **output as well as input**. If you match on the old extension URL when reading a
-`$session-result` Bundle, update it — you will otherwise stop seeing the coded dosing
-instruction. On the way in, both URLs are accepted for `CodedDirections`, so a prescription you
-stored before the move can still be handed to `$createrx-session` unchanged.
-
-The four retired G-Standaard code systems (`…/CodeSystem/gstandaard-ssk` and friends) deliberately
-did **not** move: they exist only to name what integrators already send, and are on their way out.
-
-Three input parameters also changed shape, so that the generated `OperationDefinition`s can
-describe them:
-
-| Was | Now | Why |
-| --- | --- | --- |
-| `xis` with `id` and `version` parts | `xisId` and `xisVersion`, two `valueString` parameters | An `OperationDefinition` parameter cannot describe a value carried in `part` |
-| `reason` as `valueCoding` **or** `valueCodeableConcept` | `valueCodeableConcept` only | `OperationDefinition.parameter.type` is a single code, so a parameter cannot be both described and polymorphic |
-| `endSessionUrl` as any primitive | `valueUrl` (or `valueUri`) | Same reason; `valueString` is now rejected |
-
-There is no compatibility window for these: the interface has no released version yet. See
-[Current limitations](#current-limitations) for what is still unpinned.
 
 ## Global flow
 
@@ -118,8 +82,12 @@ or writes against `/fhir/Patient`, `/fhir/MedicationRequest` and the like are no
 Set `Accept: application/fhir+json` explicitly in machine clients; relying on the default works,
 but a browser-style `Accept` header will get HTML.
 
-Unrecognised parameters in an input `Parameters` are ignored rather than rejected. Where a
-parameter is single-valued and repeats, the first occurrence wins.
+**A parameter name this interface does not define is a 400, and so is a repeat of a single-valued
+one.** The request profiles close the list of parameter names and carry each one's cardinality, so
+`medicationstatement` for `medicationStatement` is rejected — *"does not match any known slice
+defined in the profile … and slicing is CLOSED"* — rather than silently dropped, and a second
+`endSessionUrl` is rejected as *"max allowed = 1, but found 2"*. Both are caught before anything is
+sent upstream; see [Profiles](#profiles).
 
 ## Authentication
 
@@ -136,8 +104,10 @@ token to obtain and nothing to refresh. And a licence change takes effect on the
 401 that appears without a code change is worth checking with Digitalis before you debug your
 client.
 
-Unauthenticated paths: `GET /fhir/metadata` and `GET /actuator/health/**`. Everything else requires
-the header; a missing or malformed one is a 401 with `WWW-Authenticate: Basic`.
+Unauthenticated paths: `GET /fhir/metadata`, `GET /fhir/OperationDefinition/**` and
+`GET /actuator/health/**` — the discovery documents, so you can read what the interface accepts
+before your credentials are issued. Everything else requires the header; a missing or malformed one
+is a 401 with `WWW-Authenticate: Basic`.
 
 ## `GET /fhir/metadata`
 
@@ -151,17 +121,16 @@ issued.
 curl -sS 'http://localhost:8080/fhir/metadata?_format=json'
 ```
 
-The statement links each operation to a generated `OperationDefinition`, e.g.
-`/fhir/OperationDefinition/-s-formulary-session`. Each describes its parameters with `use: in`, a
-`type` and a cardinality, so `prescription` reads `max: "0"` on `$formulary-session` and `max: "1"`
-on `$createrx-session`. Note two limits:
+The statement links each operation to a generated `OperationDefinition`:
+`/fhir/OperationDefinition/-s-formulary-session`, `…/-s-createrx-session` and
+`…/-s-session-result`. Each describes **every** input parameter with `use: in`, a `type` and a
+cardinality, so a request can be generated from the definition alone — `prescription` reads
+`max: "0"` on `$formulary-session` and `max: "1"` on `$createrx-session`. Those URLs are readable
+unauthenticated, like the statement that advertises them.
 
-- Every input parameter is described, so a request can be generated from the definition alone.
-- Those `OperationDefinition` URLs require authentication, even though the CapabilityStatement
-  advertising them does not.
-
-Use the CapabilityStatement to confirm the operations and the FHIR version, and this document for
-the payloads.
+The `OperationDefinition`s give you the parameter list; the [profiles](#profiles) give you what has
+to be true *inside* each parameter. Use the CapabilityStatement to confirm the operations and the
+FHIR version, and this document for the payloads.
 
 ## `POST /fhir/$formulary-session`
 
@@ -197,14 +166,15 @@ for you.
 `birthDate` is required. Nothing else in the `Patient` is read, so you can leave the rest out: no
 name, identifier or address is forwarded to Prescriptor or stored here.
 
-**`reason`** — send a `CodeableConcept`; a bare `valueCoding` is rejected. The code must match
-`^[A-Z][0-9]{2}(\.[0-9]{2})?$` (`A01`, `U71.01`); anything else is a 400. The `system` must be the
-ICPC-1 NL OID `urn:oid:2.16.840.1.113883.2.4.4.31.1` or the short name `ICPC`.
+**`reason`** — send a `CodeableConcept`; a bare `valueCoding` is rejected, because
+`OperationDefinition.parameter.type` is a single code and a declared parameter cannot also be
+polymorphic. The `system` must be the ICPC-1 NL OID `urn:oid:2.16.840.1.113883.2.4.4.31.1`, and the
+code must match `^[A-Z][0-9]{2}(\.[0-9]{2})?$` (`A01`, `U71.01`); anything else is a 400.
 
 **`endSessionUrl`** — where Prescriptor sends the care provider's browser when the session ends.
-Send it as `valueUrl` (a `valueUri` is also accepted; a `valueString` is not). Only `http` and
-`https` are accepted, so a custom scheme such as an app deep link is a 400: use an `https` landing
-page and redirect on from there.
+Send it as `valueUrl`, and only as `valueUrl`: a `valueString` is refused by the operation binding
+and a `valueUri` by the profile. Only `http` and `https` are accepted, so a custom scheme such as an
+app deep link is a 400: use an `https` landing page and redirect on from there.
 
 **`xisId` and `xisVersion`** — identify your product, not the practice. Send your own system id and
 release version; keep the id stable across releases and move only the version. It is used to trace your calls in this
@@ -225,8 +195,10 @@ accepted here). Send the composite code as **one** coding: memo (positions 1–4
 bijzonderheid (7–8) belong together — do not split them across three codings or three resources.
 Codes shorter than 8 positions are padded for you. `effectiveDateTime` is required.
 
-The value may be `valueQuantity` or any primitive (`valueString`, …). Any `unit` on a Quantity is
-**ignored**, so send the value in the unit the determination is defined in rather than converting.
+The value is required, and is one of `valueQuantity`, `valueString`, `valueBoolean`,
+`valueInteger`, `valueTime` or `valueDateTime`. `CodeableConcept`, `Range`, `Ratio`, `SampledData`
+and `Period` are rejected, because nothing reads them. Any `unit` on a Quantity is **ignored**, so
+send the value in the unit the determination is defined in rather than converting.
 
 ```jsonc
 POST /fhir/$formulary-session
@@ -281,8 +253,11 @@ Authorization: Basic ...
 }
 ```
 
-`status` and `subject` on the input resources are not read. Send them if your FHIR library requires
-them for validity, and do not expect them to influence the session.
+`status` and `subject` on the input resources are not read — and are nonetheless **required**. Base
+R4 makes them mandatory and a profile can only constrain, so a payload without them fails
+validation. Send them as the example does, with a `data-absent-reason` where you have nothing to
+point at, and do not expect either to influence the session. See
+[Elements FHIR requires that fhir-hub does not read](#elements-fhir-requires-that-fhir-hub-does-not-read).
 
 ### Output
 
@@ -298,10 +273,13 @@ them for validity, and do not expect them to influence the session.
   "resourceType": "Parameters",
   "parameter": [
     { "name": "sessionId", "valueString": "sess-abc-123" },
-    { "name": "url", "valueUrl": "https://evs.prescriptor.nl/web_current/?session=sess-abc-123" }
+    { "name": "url", "valueUrl": "https://evs.prescriptor.nl/web_current/index.php?sk=sess-abc-123" }
   ]
 }
 ```
+
+Treat `url` as opaque: redirect to it unchanged. Its shape is Prescriptor's and is not part of this
+contract, so do not parse the session id back out of it — `sessionId` is where it lives.
 
 ## `POST /fhir/$createrx-session`
 
@@ -318,10 +296,14 @@ Identical to `$formulary-session` except:
 ### `prescription`
 
 Send back the `MedicationRequest` you received from `$session-result`, with whatever edits you
-intend. The two shapes are identical, so no reshaping is needed.
+intend. The two shapes are the same, with one exception: the product must be coded as **PRK or
+HPK**, and `$session-result` may have returned it at GPK level. A GPK-coded prescription cannot be
+handed back — resolve it to a PRK or an HPK first, or open the session without a prescription.
 
 | Element | Card. | Notes |
 | --- | --- | --- |
+| `status`, `intent` | 1..1 | Mandatory in base R4, not read. `active` and `order` |
+| `subject` | 1..1 | Mandatory in base R4, not read. A `data-absent-reason` of `unknown`, as on the way out |
 | `medicationCodeableConcept` | 1..1 | Required. Must carry a PRK **or** HPK coding; PRK wins when both are given |
 | `medicationCodeableConcept.coding` (ATC) | 0..1 | `http://www.whocc.no/atc`, forwarded as-is |
 | `medicationCodeableConcept.text` | 0..1 | Used as the description when a coding has no `display` |
@@ -338,6 +320,9 @@ through verbatim in both directions and derives no structured dosing. See
 { "name": "prescription", "resource": {
     "resourceType": "MedicationRequest",
     "status": "active", "intent": "order",
+    "subject": { "extension": [ {
+      "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+      "valueCode": "unknown" } ] },
     "medicationCodeableConcept": { "coding": [
       { "system": "urn:oid:2.16.840.1.113883.2.4.4.10", "code": "18996",
         "display": "PARACETAMOL ZETPIL 1000MG" },
@@ -496,13 +481,16 @@ published as an implementation guide with the canonical `http://spec.digitalis.n
 | `$session-result` response | `fhirhub-ResultBundle` |
 
 The input profiles slice `Parameters.parameter` by name and point each slice at a resource
-profile, so validating the request body checks the resources inside it in one pass. **The
-slicing is closed**: a parameter this interface does not recognise is a validation error. That
-is deliberate — fhir-hub silently ignores an unknown parameter, so a host that sends
-`medicationstatement` instead of `medicationStatement` gets a session opened against a silently
-thinner medication list. Validate before you send and the typo is caught.
+profile, so validating the request body checks the resources inside it in one pass. **The slicing
+is closed**: a parameter name this interface does not define is an error. That is deliberate. The
+mapping layer behind the validator reads the parameters it knows and ignores the rest, so
+`medicationstatement` for `medicationStatement` would otherwise open a session against a silently
+thinner medication list — the same class of false negative that makes an unresolvable drug code a
+400 rather than a warning. The closed slice turns the typo into a rejected request.
 
-Every example in this document is an instance in the IG and is validated on each build.
+Both session requests, the session response and the result Bundle in this document are also
+instances in the IG, and each is validated against the profile it claims on every build — so the
+documentation cannot drift away from the profiles.
 
 **These profiles are enforced.** A request body is validated against its profile before anything
 else happens — before the G-Standaard lookup and before the call upstream — and a payload that
@@ -525,12 +513,14 @@ changes nothing:
 | `Condition` | `subject` | |
 | `MedicationStatement` | `status`, `subject` | |
 | `Observation` | `status` | |
+| `MedicationRequest` (`prescription`) | `status`, `intent`, `subject` | `$createrx-session` only |
 
 The patient travels as a sibling parameter rather than a contained resource, so there is nothing
 for `patient` and `subject` to reference. Send a `data-absent-reason` of `unknown`, as the
 examples above do — the same idiom `$session-result` uses for `MedicationRequest.subject` on the
-way out. fhir-hub itself accepts a payload without these; it is the profiles, and base FHIR,
-that require them.
+way out. The mapping layer itself would accept a payload without these; it is the profiles, and
+base FHIR underneath them, that require them — and since validation runs before mapping, they are
+required in practice and not only on paper.
 
 ## Code systems
 
@@ -547,11 +537,7 @@ Emitted on output and accepted on input:
 | ATC | `http://www.whocc.no/atc` |
 | UCUM | `http://unitsofmeasure.org` |
 
-Copy these strings exactly. A `system` this interface does not recognise is not routed: the coding
-is treated as absent, and the request fails with a 400 naming the element it was on.
-
-**The four G-Standaard subsystems are now pinned to national OIDs.** They were Digitalis-local
-URIs while no national identifier was published; they are not any more.
+The four G-Standaard subsystems are identified by national OIDs as well:
 
 | Concept | `system` | Used by |
 | --- | --- | --- |
@@ -564,14 +550,21 @@ These are the same OIDs Nictiz binds to in `nl-core-AllergyIntolerance` and
 `nl-core-MedicationContraIndication`, so a coding you send here is one you can send to any Dutch
 system that follows those profiles.
 
-**If you are already sending the old Digitalis URIs**
-(`http://digitalis.nl/fhir/CodeSystem/gstandaard-…`), nothing breaks. They remain accepted and are
-mapped to the same subsystem; the OIDs above are what fhir-hub emits. Move when it suits you. They
-will be retired eventually, and this document will date that before it happens.
+**Copy these strings exactly, and send nothing else.** In particular, the bare upstream token —
+`PRK`, `HPK`, `SSK`, `SNK`, `OGGrp`, `CICode`, `ICPC` — is what the JSON API took as a separate
+field and is *not* a FHIR `system`. Sending one, or any other URI for the same table, fails
+validation on the element it was on:
 
-The bare upstream token (`SSK`, `SNK`, `OGGrp`, `CICode`, `PRK`, `HPK`, `ICPC`) is also still
-accepted as a `system` so that a host mid-migration is never blocked. It is not conformant — the
-profiles do not admit it — and it is the first of the three forms that will go.
+```
+None of the codings provided are in the value set 'ICPC-1 NL'
+(http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl|0.1.0), and a coding from this value set is
+required) (codes = ICPC#A01)
+```
+
+The G-Standaard tables are licensed and are not distributed with the profiles, so what is checked
+is the `system`, not the code: a coding from one of the systems above passes with a warning that its
+code could not be verified, and a coding from any other system is an error. The one code shape that
+*is* checked is ICPC-1 NL, by an invariant rather than by expansion.
 
 ## Extensions
 
@@ -614,25 +607,47 @@ all of them. No response in this API is un-parseable by a FHIR library.
 | Invalid request | 400 |
 | Prescriptor unreachable (`Could not reach Prescriptor`) or unparseable | 500 |
 
-Representative 400s, quoted as returned, so you can recognise them while building. The wording is
-**not** part of the contract — branch on the HTTP status and show `diagnostics` to whoever has to
-act on it, rather than matching on the text:
+A 400 comes from one of three places. Knowing which saves time when you read `diagnostics`, and
+each is quoted as returned so you can recognise it while building.
 
-- `Parameters.parameter:patient is required and must be a Patient`
-- `Patient.gender must be 'male', 'female' or 'unknown'; Prescriptor cannot interpret 'other'`
-- `Patient.gender must be 'male', 'female' or 'unknown'; Prescriptor cannot interpret an absent gender`
-- `Patient.birthDate is required`
-- `Parameters.parameter:reason is required for a formulary session and must carry an ICPC-1 NL coding`
-- `Invalid ICPC code 'ABC'. Must be a letter followed by two digits (e.g. A01), optionally with a dot and two more digits (e.g. U71.01)`
-- `Parameters.parameter:endSessionUrl is required`
-- `Invalid endSessionUrl. Must be a valid http or https URL.`
-- `Parameters.parameter:xisId is required and must be a non-blank string`
-- `AllergyIntolerance.code has no coding in a system this interface routes; expected one of [SSK, SNK, OGGrp]`
-- `Observation.code requires a coding in urn:oid:2.16.840.1.113883.2.4.4.30.45 (NHG Tabel 45 sleutelcode)`
-- `Observation.effectiveDateTime is required`
+**The profile**, which is where most of them come from. The body is validated before anything else
+happens, and the `OperationOutcome` carries one issue per error with the element it failed on — so
+you get every problem in one response rather than one per round trip. The wording is the FHIR
+validator's:
+
+- `Slice 'Parameters.parameter:endSessionUrl': a matching slice is required, but not found` — a
+  missing parameter
+- `This element does not match any known slice defined in the profile … and slicing is CLOSED` — a
+  misspelled parameter name
+- `Parameters.parameter:endSessionUrl: max allowed = 1, but found 2` — a repeated single-valued
+  parameter
+- `Parameters.parameter:prescription: max allowed = 0, but found 1` — a prescription sent to
+  `$formulary-session`
+- `Patient.birthDate: minimum required = 1, but only found 0`
+- `MedicationRequest.subject: minimum required = 1, but only found 0` — the `data-absent-reason`
+  idiom is missing; see [Elements FHIR requires that fhir-hub does not read](#elements-fhir-requires-that-fhir-hub-does-not-read)
+- `The value provided ('other') was not found in the value set 'Administrative gender accepted by
+  Prescriptor' …, and a code is required from this value set`
+- `None of the codings provided are in the value set 'Contra-indication (CICode or ICPC-1 NL)' …,
+  and a coding from this value set is required) (codes = …)`
+- `Constraint failed: fhirhub-icpc-shape: 'An ICPC-1 NL code is a letter and two digits, optionally
+  followed by a dot and two more (A01, U71.01).'`
+- `Constraint failed: fhirhub-http-url: 'Only http and https are accepted: …'`
+
+**The operation binding**, before the body is validated at all, when a parameter carries the wrong
+type:
+
+- `HAPI-0362: Request has parameter reason of type Coding but method expects type CodeableConcept`
+- `HAPI-0362: Request has parameter endSessionUrl of type StringType but method expects type UrlType`
+
+**This interface's own rules**, for the things a profile cannot express:
+
 - `G-Standaard has no product for PRK 404040, so it cannot take part in medication surveillance`
-- `Parameters.parameter:prescription is only accepted by $createrx-session`
-- `prescription requires a PRK or HPK coding on medicationCodeableConcept`
+- `PRK code '18996a' is not numeric`
+- `The 'session' parameter is required` — on `$session-result`
+
+None of this wording is part of the contract. Branch on the HTTP status, and show `diagnostics` to
+whoever has to act on it rather than matching on the text.
 
 ```json
 {
@@ -640,10 +655,19 @@ act on it, rather than matching on the text:
   "issue": [ {
     "severity": "error",
     "code": "processing",
-    "diagnostics": "Parameters.parameter:endSessionUrl is required"
+    "details": { "coding": [ {
+      "system": "http://hl7.org/fhir/java-core-messageId",
+      "code": "Validation_VAL_Profile_Minimum_SLICE" } ] },
+    "diagnostics": "Slice 'Parameters.parameter:endSessionUrl': a matching slice is required, but not found (from http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput|0.1.0). Note that other slices are allowed in addition to this required slice",
+    "location": [ "Parameters", "Line[1] Col[894]" ],
+    "expression": [ "Parameters" ]
   } ]
 }
 ```
+
+Validator issues also carry `operationoutcome-issue-line`, `-issue-col` and `-message-id`
+extensions, trimmed here. `expression` and `location` are the two fields worth surfacing to a
+developer: they name the element that failed.
 
 ## Behaviour to design around
 
@@ -657,6 +681,11 @@ act on it, rather than matching on the text:
 - **`xisId` and `xisVersion` never reach Prescriptor.** Send them anyway: it is how a support
   question gets traced to your calls.
 - **Structured dosing is not round-tripped.** Edit the `CodedDirections` extension, not `timing`.
+- **A GPK-coded prescription cannot be handed back** to `$createrx-session`, which needs a PRK or an
+  HPK. See [`prescription`](#prescription).
+- **Nothing in a request is ignored.** An unrecognised parameter name, a repeated single-valued
+  parameter and a wrong value type are all 400s, so a typo surfaces as a rejection rather than as a
+  session opened on partial data.
 - **Lab units are dropped.** Send values in the determination's own unit; a `Quantity.unit` is
   ignored.
 - **Retries are not safe on `$session-result`.** Trigger it from the `endSessionUrl` redirect, not
@@ -665,7 +694,7 @@ act on it, rather than matching on the text:
 ## Moving from the JSON API
 
 If you are replacing a JSON API integration, the payloads change shape but the operations, the
-semantics and the status codes do not. Two differences go beyond syntax.
+semantics and the status codes do not. Three differences go beyond syntax.
 
 - **Credentials move to the HTTP layer.** The organization id and key leave the request body and
   become an HTTP Basic header. The values are unchanged.
@@ -675,6 +704,9 @@ semantics and the status codes do not. Two differences go beyond syntax.
   API forwards current medication at the level you supply it without that lookup, so a code that is
   accepted there can be rejected here. Check your codes against a current G-Standaard before
   switching over.
+- **The code system stops being a separate field and becomes the `system` on the coding.** Where the
+  JSON API took a code alongside a `PRK`, `SSK` or `ICPC` token, here the token is replaced by the
+  URI from [Code systems](#code-systems). The tokens themselves are not accepted as a `system`.
 
 Everything else is a mapping question, and the field-by-field table Digitalis can send you covers
 it.
@@ -690,14 +722,16 @@ not in the running service.
   profiles over the network: an unresolvable profile is reported as *not checked* rather than as
   a failure, so a validation run can report success having verified nothing.
 - **No `meta.profile` is asserted** on any resource, so do not filter or route on it. Validate
-  against the profile URLs above explicitly instead.
+  against the profile URLs above explicitly instead. The IG's example instances do carry one,
+  because the publishing tool adds it; a live payload does not.
 - **nl-core is not derived from**, so do not expect these resources to satisfy nl-core. Three of
   the five are blocked on Nictiz rather than on effort: `nl-core-MedicationContraIndication`
   profiles `Flag` rather than `Condition`, `nl-core-LaboratoryTestResult` does not admit NHG
   Tabel 45 codes (Nictiz BITS **ZIB-639**), and `nl-core-MedicationUse2` is not published in the
   nl-core package. Ask Digitalis before building anything that depends on nl-core conformance.
-- **Four code system URIs are Digitalis-local** and will change once national OIDs are published —
-  see [Code systems](#code-systems).
+- **The artifacts are `draft`, at version `0.1.0`,** and no versioning policy is agreed yet: there
+  is no path versioning and no published change policy. Agree with Digitalis how you want to be
+  told about a change before you go live.
 
 Questions, or a case this document does not cover: contact Digitalis. If you are moving from the
 JSON API, ask for the field-by-field mapping table, which lists each JSON field alongside its FHIR

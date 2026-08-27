@@ -183,17 +183,15 @@ public class SessionParametersMapper {
 	 * The NHG Tabel 25 coded instruction. Taken from the CodedDirections extension when the
 	 * host round-trips a prescription this interface produced, and otherwise from Dosage.text.
 	 *
-	 * <p>Both the current and the pre-move extension URL are accepted, because a host may hand
-	 * back a prescription issued before the canonical moved. Only the current one is emitted.
+	 * <p>The extension wins over {@code Dosage.text}, which is the human-readable form beside
+	 * it: reading the text in preference would downgrade the dosing silently rather than
+	 * visibly, and that is the failure this interface is built to avoid.
 	 */
 	private String codedDirections(MedicationRequest prescription) {
 		for (Dosage dosage : prescription.getDosageInstruction()) {
-			for (String url : new String[] {
-					DigitalisExtensions.CODED_DIRECTIONS, DigitalisExtensions.LEGACY_CODED_DIRECTIONS }) {
-				Extension coded = dosage.getExtensionByUrl(url);
-				if (coded != null && coded.getValue() != null) {
-					return coded.getValue().primitiveValue();
-				}
+			Extension coded = dosage.getExtensionByUrl(DigitalisExtensions.CODED_DIRECTIONS);
+			if (coded != null && coded.getValue() != null) {
+				return coded.getValue().primitiveValue();
 			}
 		}
 
@@ -249,9 +247,9 @@ public class SessionParametersMapper {
 	}
 
 	/**
-	 * The reason for encounter. A {@code CodeableConcept} only: a bare {@code Coding} used to be
-	 * accepted too, but {@code OperationDefinition.parameter.type} is a single code, so a
-	 * parameter cannot be both declared and polymorphic.
+	 * The reason for encounter, as a {@code CodeableConcept} and nothing else:
+	 * {@code OperationDefinition.parameter.type} is a single code, so a parameter cannot be both
+	 * declared and polymorphic.
 	 */
 	private String icpcCode(CodeableConcept reason) {
 		return reason == null ? null : firstCodeFor(reason, CodeSystemTokens.ICPC);

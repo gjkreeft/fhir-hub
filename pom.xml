@@ -45,8 +45,8 @@
 				reference validator: ca.uhn.hapi.fhir:org.hl7.fhir.validation needs
 				jackson-databind 2.22.1, while Boot 4.1.1 manages 2.21.5. Leaving Boot in charge
 				would DOWNGRADE the validator's own dependency, which is the exact failure
-				requireUpperBoundDeps exists to catch — and it did, the moment
-				hapi-fhir-validation was added.
+				requireUpperBoundDeps exists to catch, and does catch: drop this import and the
+				build fails rather than the validator.
 
 				Boot is not the loser it looks like: spring-boot-starter-jackson is excluded from
 				starter-web, so nothing in this application asks Spring to serialise JSON. Jackson

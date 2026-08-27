@@ -48,8 +48,8 @@ Description: "One prescription written in the session."
 * medication[x] only CodeableConcept
 * medicationCodeableConcept 1..1
 * medicationCodeableConcept from DispensedMedicationCodeVS (required)
-* medicationCodeableConcept ^short = "PRK and GPK as a pair, plus HPK and ATC when the upstream supplies them"
-* medicationCodeableConcept ^comment = "CodeableConcept.text carries the product description."
+* medicationCodeableConcept ^short = "One G-Standaard coding, at the level Prescriptor prescribed at, plus an ATC when it supplies one"
+* medicationCodeableConcept ^comment = "Exactly one G-Standaard coding is emitted — PRK, HPK or GPK, whichever level the prescription was written at — so match on whichever is present rather than looking for PRK. This is the reverse of the input side, where a PRK or HPK the host sends is expanded to a PRK + GPK (+ HPK) set for medication surveillance. CodeableConcept.text carries the product description."
 * extension contains OpiumActClassification named opiumAct 0..1
 * extension[opiumAct] ^short = "Present only when the product falls under the Opiumwet"
 * dosageInstruction.extension contains CodedDirections named codedDirections 0..1

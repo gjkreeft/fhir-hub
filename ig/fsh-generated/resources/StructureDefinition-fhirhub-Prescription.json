@@ -58,8 +58,8 @@
       {
         "id": "MedicationRequest.medication[x]",
         "path": "MedicationRequest.medication[x]",
-        "short": "PRK and GPK as a pair, plus HPK and ATC when the upstream supplies them",
-        "comment": "CodeableConcept.text carries the product description.",
+        "short": "One G-Standaard coding, at the level Prescriptor prescribed at, plus an ATC when it supplies one",
+        "comment": "Exactly one G-Standaard coding is emitted — PRK, HPK or GPK, whichever level the prescription was written at — so match on whichever is present rather than looking for PRK. This is the reverse of the input side, where a PRK or HPK the host sends is expanded to a PRK + GPK (+ HPK) set for medication surveillance. CodeableConcept.text carries the product description.",
         "type": [
           {
             "code": "CodeableConcept"

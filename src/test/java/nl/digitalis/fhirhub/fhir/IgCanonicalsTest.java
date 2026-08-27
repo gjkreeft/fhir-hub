@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,22 +35,16 @@ class IgCanonicalsTest {
 	}
 
 	@Test
-	void theIgDefinesTheDigitalisCodeSystems() throws IOException {
-		String terminology = read("terminology.fsh");
-
-		assertThat(idIn(terminology, Systems.G_STANDAARD_BIJZONDER_KENMERK)).isTrue();
-		assertThat(idIn(terminology, CodeSystemRegistry.DIGITALIS_SSK)).isTrue();
-		assertThat(idIn(terminology, CodeSystemRegistry.DIGITALIS_SNK)).isTrue();
-		assertThat(idIn(terminology, CodeSystemRegistry.DIGITALIS_OGGRP)).isTrue();
-		assertThat(idIn(terminology, CodeSystemRegistry.DIGITALIS_CI_CODE)).isTrue();
+	void theIgDefinesTheDigitalisCodeSystem() throws IOException {
+		assertThat(idIn(read("terminology.fsh"), Systems.G_STANDAARD_BIJZONDER_KENMERK)).isTrue();
 	}
 
 	/**
-	 * The pinned national OIDs have to be in the value sets, or the profiles would still be
-	 * binding to the deprecated Digitalis placeholders while the service emits the OIDs.
+	 * The national OIDs have to be the ones in the value sets, or the profiles would bind
+	 * something other than what the service emits.
 	 */
 	@Test
-	void theIgBindsThePinnedGStandaardOids() throws IOException {
+	void theIgBindsTheNationalGStandaardOids() throws IOException {
 		String terminology = read("terminology.fsh");
 
 		assertThat(terminology)
@@ -92,24 +85,6 @@ class IgCanonicalsTest {
 		assertThat(Profiles.CREATERX_SESSION_INPUT).startsWith(CANONICAL + "/");
 		assertThat(Profiles.SESSION_OUTPUT).startsWith(CANONICAL + "/");
 		assertThat(Profiles.RESULT_BUNDLE).startsWith(CANONICAL + "/");
-	}
-
-	/**
-	 * The retired G-Standaard code systems stay on the pre-move host. They exist only to name
-	 * what integrators already send, so following the canonical would invent a third form to
-	 * support instead of retiring the second.
-	 */
-	@Test
-	void theRetiredCodeSystemsStayOnTheOldHost() throws IOException {
-		String terminology = read("terminology.fsh");
-
-		for (String legacy : List.of(CodeSystemRegistry.DIGITALIS_SSK, CodeSystemRegistry.DIGITALIS_SNK,
-				CodeSystemRegistry.DIGITALIS_OGGRP, CodeSystemRegistry.DIGITALIS_CI_CODE)) {
-			assertThat(legacy).startsWith("http://digitalis.nl/fhir/");
-			assertThat(terminology)
-					.as("%s is pinned with an explicit ^url, not derived from the canonical", legacy)
-					.contains("* ^url = \"" + legacy + "\"");
-		}
 	}
 
 	/** SUSHI turns "Id: x" into {canonical}/StructureDefinition/x — or /CodeSystem/x. */

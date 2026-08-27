@@ -22,22 +22,22 @@ import nl.digitalis.fhirhub.model.Directions;
  * systems consuming this API hand it onward to a pharmacy chain that reads it natively. Nobody
  * in that path computes on a FHIR dosing schedule.
  *
- * <p>An earlier version parsed the coded string into {@code timing.repeat} and
- * {@code doseAndRate}. That was removed deliberately, and re-adding it needs a reason:
+ * <p>Parsing the coded string into {@code timing.repeat} and {@code doseAndRate} is the obvious
+ * thing to want, and it needs a better reason than obviousness:
  * <ul>
- *   <li>It was lossy — only the frequency, period, dose and unit components were mapped, while
- *       the b-codes and the trailing free text were dropped, and the unit was emitted as bare
- *       text because Tabel 25 units are not UCUM.</li>
- *   <li>It was never read back. {@code SessionParametersMapper} recovers the coded string from
- *       the extension, so a host editing {@code timing} and returning the resource had its edit
- *       silently ignored — two representations of one fact, only one of them authoritative.</li>
+ *   <li>It is lossy. Frequency, period, dose and unit map across; the b-codes and the trailing
+ *       free text do not, and the unit has to be emitted as bare text because Tabel 25 units are
+ *       not UCUM.</li>
+ *   <li>It would not be read back. {@code SessionParametersMapper} recovers the coded string
+ *       from the extension, so a host that edits {@code timing} and returns the resource has its
+ *       edit silently ignored — two representations of one fact, only one authoritative.</li>
  *   <li>{@code MedicationRequest} asserts no profile at all, so no conformance obligation rests
  *       on the structured elements.</li>
  * </ul>
  *
  * <p>If national conformance is taken on later, the target is the zib Gebruiksinstructie /
- * Doseerinstructie model from Medicatieproces 9 — a different and fuller mapping than the
- * component split that used to live here, not an extension of it.
+ * Doseerinstructie model from Medicatieproces 9, which is a fuller mapping than splitting the
+ * string into components — not a step towards it.
  */
 @Component
 public class T25DosageMapper {

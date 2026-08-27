@@ -7,8 +7,8 @@ package nl.digitalis.fhirhub.fhir;
  * and these constants are the same fact written twice. {@code IgCanonicalsTest} fails if they
  * drift apart.
  *
- * <p>A class of this name existed once before and was deleted as dead code, because no mapper
- * ever referenced it and there were no profiles behind the URLs. Both are now true.
+ * <p>These are not decoration: the providers hand them to {@code ProfileValidator}, so every
+ * inbound payload is checked against the URL named here.
  */
 public final class Profiles {
 

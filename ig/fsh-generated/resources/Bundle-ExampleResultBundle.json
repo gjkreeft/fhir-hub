@@ -20,6 +20,20 @@
         },
         "status": "active",
         "intent": "order",
+        "extension": [
+          {
+            "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-MedicationRequest.OpiumActClassification",
+            "valueCodeableConcept": {
+              "coding": [
+                {
+                  "code": "2",
+                  "system": "http://spec.digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk",
+                  "display": "Product valt onder Opiumwet in volle omvang"
+                }
+              ]
+            }
+          }
+        ],
         "subject": {
           "extension": [
             {
@@ -33,14 +47,14 @@
             {
               "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
               "code": "18996",
-              "display": "PARACETAMOL TABLET 500MG"
+              "display": "PARACETAMOL ZETPIL 1000MG"
             },
             {
-              "system": "urn:oid:2.16.840.1.113883.2.4.4.1",
-              "code": "111111"
+              "system": "http://www.whocc.no/atc",
+              "code": "N02BE01"
             }
           ],
-          "text": "PARACETAMOL TABLET 500MG"
+          "text": "PARACETAMOL ZETPIL 1000MG"
         },
         "dosageInstruction": [
           {
@@ -50,7 +64,7 @@
                 "valueString": "3-4D1S; gedurende max. 1 maand"
               }
             ],
-            "text": "3 tot 4 maal daags 1 stuk; gedurende max. 1 maand"
+            "text": "3 tot 4 maal per dag 1 stuk"
           }
         ],
         "dispenseRequest": {
@@ -59,6 +73,12 @@
             "system": "urn:oid:2.16.840.1.113883.2.4.4.1.900.2",
             "code": "ST",
             "unit": "ST"
+          },
+          "expectedSupplyDuration": {
+            "value": 30,
+            "unit": "dag",
+            "system": "http://unitsofmeasure.org",
+            "code": "d"
           }
         }
       }
@@ -86,7 +106,38 @@
         ],
         "payload": [
           {
-            "contentString": "Neem de tabletten met voldoende water in."
+            "contentString": "Neem in bij voorkeur met wat water."
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:7b8c9d01-2e3f-4a5b-9c6d-7e8f9a0b1c2d",
+      "resource": {
+        "resourceType": "Communication",
+        "id": "ExampleAdviceLink",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Advice"
+          ]
+        },
+        "status": "completed",
+        "category": [
+          {
+            "coding": [
+              {
+                "code": "instruction",
+                "system": "http://terminology.hl7.org/CodeSystem/communication-category"
+              }
+            ]
+          }
+        ],
+        "payload": [
+          {
+            "contentAttachment": {
+              "contentType": "text/uri-list",
+              "url": "https://www.thuisarts.nl/paracetamol"
+            }
           }
         ]
       }

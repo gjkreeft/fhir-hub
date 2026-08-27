@@ -13,7 +13,7 @@
     },
     {
       "name": "url",
-      "valueUrl": "https://alfa.prescriptor-test.nl/api/prescriptor/session/sess-abc-123"
+      "valueUrl": "https://evs.prescriptor.nl/web_current/index.php?sk=sess-abc-123"
     }
   ]
 }

@@ -4,7 +4,7 @@
   "name": "DispensedMedicationCodeVS",
   "id": "dispensed-medication-code",
   "title": "Prescribed medication code (PRK, GPK, HPK or ATC)",
-  "description": "Codings that may appear on a MedicationRequest returned by $session-result. PRK and GPK are always present as a pair; HPK and ATC appear when the upstream supplies them.",
+  "description": "Codings that may appear on a MedicationRequest returned by $session-result. Exactly one of PRK, GPK and HPK is present — the level the prescription was written at — with an ATC beside it when the upstream supplies one.",
   "version": "0.1.0",
   "url": "http://spec.digitalis.nl/fhir/ValueSet/dispensed-medication-code",
   "compose": {
