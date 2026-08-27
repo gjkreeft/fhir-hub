@@ -185,9 +185,9 @@ resolved **fails the whole request with a 400** naming that code; it is not skip
 is not opened. So refresh codes against a current G-Standaard before sending, and do not expect to
 pass a drug you cannot code — there is no free-text fallback.
 
-Send the whole list at one code level: PRK throughout, or HPK throughout. The level of the **first**
-entry is the one declared for the list, so a mixed list is announced at whichever entry happens to
-come first.
+**Each entry carries its own code level.** PRK for one drug and HPK for the next is fine, in any
+order — every entry is resolved to a PRK + GPK pair before the session opens, so the level you use
+per entry is your choice and does not affect the others.
 
 **`observation`** — a lab result. `code.coding` must carry the 8-position NHG Tabel 45 sleutelcode
 under `urn:oid:2.16.840.1.113883.2.4.4.30.45` (unlike the other systems, a short name is *not*
@@ -550,15 +550,24 @@ These are the same OIDs Nictiz binds to in `nl-core-AllergyIntolerance` and
 `nl-core-MedicationContraIndication`, so a coding you send here is one you can send to any Dutch
 system that follows those profiles.
 
-**Copy these strings exactly, and send nothing else.** In particular, the bare upstream token —
-`PRK`, `HPK`, `SSK`, `SNK`, `OGGrp`, `CICode`, `ICPC` — is what the JSON API took as a separate
-field and is *not* a FHIR `system`. Sending one, or any other URI for the same table, fails
-validation on the element it was on:
+**Copy these strings exactly, and send nothing else.** There is one accepted `system` per table,
+and there is no lenient form: in particular the bare code-system token — `PRK`, `HPK`, `SSK`,
+`SNK`, `OGGrp`, `CICode`, `ICPC` — is what the JSON API carries in a field of its own, and it is
+not a FHIR `system`. Sending one, or any other URI for the same table, is a 400 on the element it
+was on:
 
 ```
 None of the codings provided are in the value set 'ICPC-1 NL'
 (http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl|0.1.0), and a coding from this value set is
 required) (codes = ICPC#A01)
+```
+
+A rejection lists the `system` URIs the element accepts, so the error tells you what to send:
+
+```
+AllergyIntolerance.code has no coding in a system this interface routes; expected one of
+[urn:oid:2.16.840.1.113883.2.4.4.1.725, urn:oid:2.16.840.1.113883.2.4.4.1.750,
+urn:oid:2.16.840.1.113883.2.4.4.1.902.122]
 ```
 
 The G-Standaard tables are licensed and are not distributed with the profiles, so what is checked

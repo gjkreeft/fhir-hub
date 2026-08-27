@@ -21,7 +21,18 @@ public class XmlRpcRequestBuilder {
 
 	private static final DateTimeFormatter BIRTHDATE = DateTimeFormatter.ofPattern("yyyyMMdd'T12:00:00'");
 
-	/** Upstream numeric prescription types, keyed by the code system the drug is given in. */
+	/**
+	 * MedicationType 9: the whole current-medication list is read at PRK level. See
+	 * {@link #medicationType}.
+	 */
+	private static final String MEDICATION_TYPE_PRK = "9";
+
+	/**
+	 * PrescriptionType for the single prescription CreateRx opens for editing, keyed by the level
+	 * the host coded it at. Unlike {@code MedicationType} this one does describe the data: it
+	 * names which of the {@code DrugCodePRK} / {@code DrugCodeHPK} members the upstream should
+	 * read, and both are written when the host supplied both.
+	 */
 	private static final Map<String, String> PRESCRIPTION_TYPES = Map.of(
 			CodeSystemTokens.HPK, "7",
 			CodeSystemTokens.PRK, "9");
@@ -47,9 +58,8 @@ public class XmlRpcRequestBuilder {
 				stringMember(struct, "SearchKey", request.icpc());
 			}
 
-			// The level the patient's current medication is supplied at, read off the first
-			// entry: 7 for HPK, 9 for PRK, and 0 when there is no medication to declare. Not a
-			// constant — the level follows the data.
+			// The level the whole current-medication list is read at. One value covers the list
+			// upstream, so it cannot follow the individual entries; see medicationType().
 			intMember(struct, "MedicationType", medicationType(patient));
 			booleanMember(struct, "MedicationCheck", true);
 			stringMember(struct, "PracticeID", credentials.practiceId());
@@ -105,13 +115,29 @@ public class XmlRpcRequestBuilder {
 		}));
 	}
 
+	/**
+	 * The level Prescriptor reads the current-medication list at — one value for the whole list,
+	 * and PRK for every list that has anything in it.
+	 *
+	 * <p>Upstream, this is not a description of the codes but an instruction: the open-session
+	 * handler switches on it once and then reads <em>that one attribute</em> off every
+	 * {@code <drug>} element, dropping any drug where the attribute is absent — without an error,
+	 * because an empty code is skipped rather than rejected. So a value derived from the host's
+	 * entries would make a mixed PRK/HPK list unsafe: announce HPK, and every PRK-coded entry
+	 * disappears from medication surveillance silently, which is the failure
+	 * {@code MedicationCodeResolver} refuses to allow for an unresolvable code.
+	 *
+	 * <p>A constant is safe here precisely because of that resolver: every entry is resolved to a
+	 * PRK + GPK pair before this runs, so PRK is present on every drug fhir-hub sends whatever
+	 * level the host used. Hosts may mix levels per entry freely, which is the point.
+	 *
+	 * <p>Two things would invalidate the constant: dropping the enrichment in
+	 * {@code MedicationCodeResolver}, or a requirement that surveillance run at HPK level. The
+	 * {@code HPK} attribute is still written when the host supplied one — see
+	 * {@code DigitalisRxBuilder} — so the second would be a change here rather than to the data.
+	 */
 	private String medicationType(PatientContext patient) {
-		if (patient.medications().isEmpty()) {
-			return NO_MEDICATION;
-		}
-
-		return PRESCRIPTION_TYPES.getOrDefault(
-				patient.medications().getFirst().codeSystem(), NO_MEDICATION);
+		return patient.medications().isEmpty() ? NO_MEDICATION : MEDICATION_TYPE_PRK;
 	}
 
 	/**

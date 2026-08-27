@@ -58,8 +58,10 @@ final class DigitalisRxBuilder {
 				});
 
 				// Current medication, resolved to the PRK/GPK pair Prescriptor needs for
-				// medication surveillance. HPK is included only when the host identified the
-				// drug at that level, matching what the upstream expects.
+				// medication surveillance. PRK is the attribute the upstream actually reads —
+				// see XmlRpcRequestBuilder.medicationType — and is why a host may mix code
+				// levels per entry. HPK is written alongside it when the host identified the
+				// drug at that level, as the more precise fact, not as the one read.
 				p.element("medication", m -> {
 					for (MedicationCodes codes : medication) {
 						m.element("drug", drug -> {

@@ -40,7 +40,7 @@ import nl.digitalis.fhirhub.prescriptor.CodeSystemTokens;
  * fails if someone acts on the intuition.
  *
  * <p>The second half is the boundary: a system no profile binds is rejected, and so is the bare
- * upstream token that {@link CodeSystemRegistry} nonetheless routes.
+ * upstream token, which is not a URI and is refused by both layers rather than quietly routed.
  */
 @SpringBootTest
 class TerminologyEnforcementTest {
@@ -71,13 +71,13 @@ class TerminologyEnforcementTest {
 	}
 
 	/**
-	 * The other half of the same fact: the mapping layer behind the validator does route the
-	 * token, so turning validation off widens what this interface accepts.
+	 * And the layer behind the validator agrees, so switching validation off makes this interface
+	 * check less rather than accept more.
 	 */
 	@Test
-	void theMappingLayerRoutesTheTokenTheProfilesReject() {
+	void theMappingLayerRoutesTheSystemAndNotTheToken() {
 		assertThat(codeSystems.tokenFor(Systems.G_STANDAARD_SNK)).isEqualTo(CodeSystemTokens.SNK);
-		assertThat(codeSystems.tokenFor(CodeSystemTokens.SNK)).isEqualTo(CodeSystemTokens.SNK);
+		assertThat(codeSystems.tokenFor(CodeSystemTokens.SNK)).isNull();
 	}
 
 	private List<String> errorsFor(String system, String code) {

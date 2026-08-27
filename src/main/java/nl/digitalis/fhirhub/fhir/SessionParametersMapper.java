@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.hl7.fhir.r4.model.AllergyIntolerance;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -165,8 +166,9 @@ public class SessionParametersMapper {
 		}
 
 		if (codes.isEmpty()) {
-			throw new InvalidRequestException(
-					PARAM_PRESCRIPTION + " requires a PRK or HPK coding on medicationCodeableConcept");
+			throw new InvalidRequestException(PARAM_PRESCRIPTION
+					+ " requires a PRK or HPK coding on medicationCodeableConcept; expected one of "
+					+ codeSystems.systemsFor(CodeSystemTokens.MEDICATION));
 		}
 
 		Quantity quantity = prescription.getDispenseRequest().getQuantity();
@@ -309,7 +311,7 @@ public class SessionParametersMapper {
 		return items;
 	}
 
-	private void addCoded(List<CodedItem> items, CodeableConcept concept, java.util.Set<String> allowed, String path) {
+	private void addCoded(List<CodedItem> items, CodeableConcept concept, Set<String> allowed, String path) {
 		if (concept == null || concept.getCoding().isEmpty()) {
 			throw new InvalidRequestException(path + " requires at least one coding");
 		}
@@ -323,8 +325,11 @@ public class SessionParametersMapper {
 			}
 		}
 
+		// The accepted system URIs, not the upstream tokens: the tokens are exactly the strings
+		// a caller must not put in Coding.system, so naming them here would misdirect.
 		throw new InvalidRequestException(
-				path + " has no coding in a system this interface routes; expected one of " + allowed);
+				path + " has no coding in a system this interface routes; expected one of "
+						+ codeSystems.systemsFor(allowed));
 	}
 
 	private String firstCodeFor(CodeableConcept concept, String token) {

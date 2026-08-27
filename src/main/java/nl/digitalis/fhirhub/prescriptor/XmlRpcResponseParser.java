@@ -38,9 +38,9 @@ public class XmlRpcResponseParser {
 
 	/** Upstream numeric prescription types, as used to pick the DrugCode/DrugName member to read. */
 	private static final Map<String, String> PRESCRIPTION_TYPES = Map.of(
-			"7", "HPK",
-			"8", "GPK",
-			"9", "PRK");
+			"7", CodeSystemTokens.HPK,
+			"8", CodeSystemTokens.GPK,
+			"9", CodeSystemTokens.PRK);
 
 	public SessionHandle parseSessionResponse(String xml, SessionType type) {
 		Element response = parse(xml).getDocumentElement();

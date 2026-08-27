@@ -128,18 +128,45 @@ class XmlRpcRequestBuilderTest {
 	}
 
 	/**
-	 * MedicationType declares the level the patient's current medication is supplied at. It is
-	 * not a constant: it follows the data, and is 0 when there is none.
+	 * MedicationType tells the upstream which attribute to read off every {@code <drug>}, so it
+	 * is PRK for any list with anything in it — the one attribute every resolved drug carries.
 	 */
 	@Test
-	void derivesMedicationTypeFromTheFirstCurrentMedication() {
+	void declaresTheWholeCurrentMedicationListAtPrkLevel() {
 		String xml = builder.openSession(Fixtures.formularySession(), Fixtures.CREDENTIALS, List.of());
 
 		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>9</int>");
 	}
 
+	/**
+	 * The case this is really about: a host that identifies one drug by HPK and the next by PRK.
+	 * Announcing HPK would make the upstream read an absent attribute on the second drug and drop
+	 * it from medication surveillance without an error, so the level follows what fhir-hub always
+	 * sends rather than what the host happened to send first.
+	 */
 	@Test
-	void declaresMedicationTypeSevenForHpk() {
+	void declaresPrkForAMixedHpkAndPrkList() {
+		PatientContext patient = new PatientContext(
+				"F", LocalDate.of(1980, 1, 1), List.of(), List.of(),
+				List.of(new CodedItem("HPK", "2106"), new CodedItem("PRK", "18996")), List.of());
+
+		String xml = builder.openSession(
+				new SessionRequest(SessionType.FORMULARY, "A01", patient, "https://x.example/d",
+						Fixtures.XIS, null),
+				Fixtures.CREDENTIALS,
+				List.of(new MedicationCodes(3689, 111111, 2106), new MedicationCodes(18996, 222222, null)));
+
+		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>9</int>");
+
+		// Both drugs carry the attribute that value points at.
+		assertThat(xml)
+				.contains("<GStandaard PRK=\"3689\" GPK=\"111111\" HPK=\"2106\"")
+				.contains("<GStandaard PRK=\"18996\" GPK=\"222222\"");
+	}
+
+	/** An HPK-only list is read at PRK level too: every entry was resolved to a PRK. */
+	@Test
+	void declaresPrkForAnHpkOnlyList() {
 		PatientContext patient = new PatientContext(
 				"F", LocalDate.of(1980, 1, 1), List.of(), List.of(),
 				List.of(new CodedItem("HPK", "2106")), List.of());
@@ -147,9 +174,9 @@ class XmlRpcRequestBuilderTest {
 		String xml = builder.openSession(
 				new SessionRequest(SessionType.FORMULARY, "A01", patient, "https://x.example/d",
 						Fixtures.XIS, null),
-				Fixtures.CREDENTIALS, List.of());
+				Fixtures.CREDENTIALS, List.of(new MedicationCodes(3689, 111111, 2106)));
 
-		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>7</int>");
+		assertThat(between(xml, "<name>MedicationType</name>", "</member>")).contains("<int>9</int>");
 	}
 
 	@Test

@@ -51,11 +51,12 @@ Description: "The Opiumwet subset of G-Standaard bestand BST401T (thesaurus BST9
 // check only that the coding comes from a system this interface routes. That is exactly the
 // check SessionParametersMapper performs.
 //
-// CodeSystemRegistry additionally maps the bare upstream token ("SSK", "PRK", "ICPC", ...) as
-// a Coding.system, because that is the form the JSON interface carries. It is deliberately NOT
-// blessed here — it is not a FHIR system, and a profile that endorsed it would make the token
-// permanent — so these required bindings reject it and it is reachable only with validation
-// switched off.
+// There is exactly ONE accepted system per subsystem, and it is a URI. The upstream tokens
+// ("SSK", "PRK", "ICPC", ...) are XML attribute names in the DigitalisRx document, not
+// identifiers a caller may put in Coding.system, so neither these bindings nor
+// CodeSystemRegistry accept one — with or without runtime validation. Blessing the token here
+// would put a non-FHIR identifier on the wire permanently, and it would be the form a host
+// discovers first.
 // ---------------------------------------------------------------------------
 
 ValueSet: AllergyCausativeAgentVS
@@ -78,7 +79,7 @@ Description: "Contra-indications fhir-hub routes to Prescriptor, as either a G-S
 ValueSet: MedicationCodeVS
 Id: medication-code
 Title: "Medication code (PRK or HPK)"
-Description: "Product code levels accepted for current medication. Send one level throughout: the level of the first entry is the one declared upstream for the whole list."
+Description: "Product code levels accepted for current medication. Each entry carries its own level, so PRK and HPK may be mixed within one list."
 * ^status = #draft
 * include codes from system $prk
 * include codes from system $hpk

@@ -8,6 +8,10 @@ import java.util.Set;
  * <p>These tokens end up as XML <em>attribute names</em> in the inner DigitalisRx document, so
  * they are validated against this allow-list before use. Without that, a caller-supplied code
  * system would be able to inject attributes.
+ *
+ * <p>They are the upstream vocabulary and nothing else. A token is never a {@code Coding.system}
+ * on either side of this interface — it is not a URI — and {@code CodeSystemRegistry} is the one
+ * place that maps between a token and the system URI that stands for it.
  */
 public final class CodeSystemTokens {
 
@@ -20,6 +24,9 @@ public final class CodeSystemTokens {
 
 	public static final String PRK = "PRK";
 	public static final String HPK = "HPK";
+
+	/** Prescribed-at level only: a host never sends current medication as a GPK. */
+	public static final String GPK = "GPK";
 
 	public static final Set<String> ALLERGY = Set.of(SSK, SNK, OGGRP);
 	public static final Set<String> CONTRA_INDICATION = Set.of(CI_CODE, ICPC);

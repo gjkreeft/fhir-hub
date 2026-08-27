@@ -15,7 +15,7 @@ and the open items. This file covers what the README does not: why the code is s
 ## Commands
 
 ```bash
-mvn test                 # 83 tests; no network and no database — WireMock stubs
+mvn test                 # 85 tests; no network and no database — WireMock stubs
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
@@ -113,10 +113,20 @@ Gebruiksinstructie model from Medicatieproces 9, not a component split.
 error wording all changed in v2 and all live in different files here. `XmlRpcRequestBuilderTest`
 pins the wire format, so start there.
 
-**`MedicationType` is derived, not fixed.** It declares the level the patient's current
-medication is supplied at: 0 when there is none, 7 for HPK, 9 for PRK, from the first entry.
-Do not "simplify" it into a constant — `9` looks right in every test fixture and is wrong for a
-patient whose medication arrives as HPK.
+**`MedicationType` is a constant `9` (PRK), and that is load-bearing rather than lazy.** Upstream
+it is not a description of the codes but an instruction: the open-session handler switches on it
+once and then reads *that one attribute* off every `<drug>` element
+(`../evs2.0/library/Prescriptor/OpenSession/Loader/Patient.php`), skipping any drug whose
+attribute is absent — silently, because an empty code is dropped rather than rejected. Deriving
+the value from the host's entries therefore makes a mixed PRK/HPK list unsafe: announce HPK, and
+every PRK-coded entry vanishes from medication surveillance. `MedicationCodeResolver` resolves
+every entry to a PRK + GPK pair, so PRK is the one attribute present on every drug this service
+sends, whatever level the host used — which is what lets a host mix levels per entry.
+
+Two things would invalidate the constant: dropping that enrichment, or a requirement to run
+surveillance at HPK level. `0` is still sent for an empty list; note that the older
+`../Webprescriptor/html/open_session.php` validates `MedicationType` against `{7,8,9}`, so verify
+the empty-medication case against the live server before relying on it.
 
 **Runtime validation is real, and it cost four dependencies rather than one.** Adding
 `hapi-fhir-validation` alone gets you a service that fails on the first request. What it needs:
@@ -153,6 +163,13 @@ other contract Digitalis publishes. One of the URLs under it is read as well as 
 prescription a host hands in. Changing that one breaks a round trip in a way the others cannot,
 because falling through to `Dosage.text` loses the coded instruction silently rather than
 failing. `IgCanonicalsTest` pins the canonical against `sushi-config.yaml`.
+
+**A `Coding.system` is a URI, and the upstream tokens are not.** `PRK`, `SSK`, `ICPC` and the
+rest are XML attribute names in the DigitalisRx document, and `CodeSystemRegistry` maps in one
+direction only: `tokenFor` takes a system URI, `systemFor` produces one. Accepting a token as a
+`Coding.system` would give the interface a second inbound dialect that no profile describes — and
+it would be the form a host finds first, because it is shorter and it is what `json-interface`
+takes. A rejection names the accepted URIs rather than the tokens, for the same reason.
 
 **Do not define the G-Standaard code systems in `ig/`.** It reads like an improvement and is the
 opposite: the tables are licensed and undistributable, so a definition would have to be

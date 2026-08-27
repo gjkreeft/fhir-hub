@@ -32,9 +32,6 @@ public class ResultBundleMapper {
 	private static final String DATA_ABSENT_REASON =
 			"http://hl7.org/fhir/StructureDefinition/data-absent-reason";
 
-	private static final String COMMUNICATION_CATEGORY =
-			"http://terminology.hl7.org/CodeSystem/communication-category";
-
 	private final CodeSystemRegistry codeSystems;
 	private final T25DosageMapper dosageMapper;
 
@@ -172,7 +169,7 @@ public class ResultBundleMapper {
 		Communication communication = new Communication();
 		communication.setStatus(CommunicationStatus.COMPLETED);
 		communication.addCategory(new CodeableConcept().addCoding(new Coding()
-				.setSystem(COMMUNICATION_CATEGORY)
+				.setSystem(Systems.COMMUNICATION_CATEGORY)
 				.setCode("instruction")));
 
 		// The text/plain versus text/uri-list distinction of the JSON interface becomes the

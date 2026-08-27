@@ -84,7 +84,7 @@ Description: "One entry of the patient's current medication, for medication surv
 * medicationCodeableConcept 1..1
 * medicationCodeableConcept from MedicationCodeVS (required)
 * medicationCodeableConcept ^short = "PRK or HPK"
-* medicationCodeableConcept ^comment = "Every code is resolved against the G-Standaard before the session is opened. A code that cannot be resolved fails the whole request with a 400 naming it — it is not skipped, because surveillance over an incomplete list answers 'no interaction found', which a prescriber cannot distinguish from a genuine all-clear. Send one level throughout: the level of the first entry is the one declared upstream for the whole list."
+* medicationCodeableConcept ^comment = "Every code is resolved against the G-Standaard before the session is opened. A code that cannot be resolved fails the whole request with a 400 naming it — it is not skipped, because surveillance over an incomplete list answers 'no interaction found', which a prescriber cannot distinguish from a genuine all-clear. Each entry carries its own level: PRK and HPK may be mixed within one list, in any order."
 * status ^comment = "Mandatory in base R4 and not read by fhir-hub."
 * subject ^comment = "Mandatory in base R4 and not read by fhir-hub. Send a data-absent-reason of 'unknown' if you have nothing to reference."
 

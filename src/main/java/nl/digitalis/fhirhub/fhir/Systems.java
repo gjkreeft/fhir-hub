@@ -85,6 +85,10 @@ public final class Systems {
 	/** UCUM, used for the supply duration in days. */
 	public static final String UCUM = "http://unitsofmeasure.org";
 
+	/** HL7 communication categories, for the {@code instruction} category on patient advice. */
+	public static final String COMMUNICATION_CATEGORY =
+			"http://terminology.hl7.org/CodeSystem/communication-category";
+
 	/**
 	 * G-Standaard bijzondere kenmerken (bestand BST401T, thesaurus BST922T).
 	 *

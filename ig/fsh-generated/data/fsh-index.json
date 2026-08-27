@@ -164,56 +164,56 @@
     "fshName": "AllergyCausativeAgentVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 61,
-    "endLine": 68
+    "startLine": 62,
+    "endLine": 69
   },
   {
     "outputFile": "ValueSet-contra-indication.json",
     "fshName": "ContraIndicationVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 70,
-    "endLine": 76
+    "startLine": 71,
+    "endLine": 77
   },
   {
     "outputFile": "ValueSet-dispensed-medication-code.json",
     "fshName": "DispensedMedicationCodeVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 86,
-    "endLine": 94
+    "startLine": 87,
+    "endLine": 95
   },
   {
     "outputFile": "ValueSet-icpc-1-nl.json",
     "fshName": "IcpcVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 96,
-    "endLine": 101
+    "startLine": 97,
+    "endLine": 102
   },
   {
     "outputFile": "ValueSet-medication-code.json",
     "fshName": "MedicationCodeVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 78,
-    "endLine": 84
+    "startLine": 79,
+    "endLine": 85
   },
   {
     "outputFile": "ValueSet-nhg-tabel-45.json",
     "fshName": "LabDeterminationVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 103,
-    "endLine": 108
+    "startLine": 104,
+    "endLine": 109
   },
   {
     "outputFile": "ValueSet-opium-act-classification.json",
     "fshName": "OpiumActVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 110,
-    "endLine": 115
+    "startLine": 111,
+    "endLine": 116
   },
   {
     "outputFile": "ValueSet-patient-gender.json",

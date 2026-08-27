@@ -105,11 +105,30 @@ class SessionParametersMapperTest {
 				.satisfies(item -> assertThat(item.codeSystem()).isEqualTo("CICode"));
 	}
 
+	/**
+	 * The rejection names the system URIs a caller may send. It used to list the upstream tokens,
+	 * which are the one set of strings that must never appear in a {@code Coding.system}.
+	 */
 	@Test
 	void rejectsACodingInASystemThatIsNotRouted() {
 		Parameters parameters = parameters();
 		parameters.addParameter().setName(SessionParametersMapper.PARAM_ALLERGY)
 				.setResource(new AllergyIntolerance().setCode(concept("http://snomed.info/sct", "91936005")));
+
+		assertThatThrownBy(() -> mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY)))
+				.isInstanceOf(InvalidRequestException.class)
+				.hasMessageContaining("no coding in a system this interface routes")
+				.hasMessageContaining(Systems.G_STANDAARD_SSK)
+				.hasMessageContaining(Systems.G_STANDAARD_SNK)
+				.hasMessageContaining(Systems.G_STANDAARD_OGGRP);
+	}
+
+	/** The upstream token is not a URI, so it is not a system a caller may send. */
+	@Test
+	void rejectsTheBareUpstreamTokenAsASystem() {
+		Parameters parameters = parameters();
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_ALLERGY)
+				.setResource(new AllergyIntolerance().setCode(concept("SNK", "10499")));
 
 		assertThatThrownBy(() -> mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY)))
 				.isInstanceOf(InvalidRequestException.class)

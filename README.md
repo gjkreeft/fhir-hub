@@ -194,13 +194,21 @@ new prescription against it for interactions and duplicate therapy. Send one par
       { "system": "urn:oid:2.16.840.1.113883.2.4.4.10", "code": "18996" } ] } } }
 ```
 
-A host identifies a drug by **one** code, PRK or HPK. Prescriptor needs PRK *and* GPK together
-(plus HPK where the host had it), so `MedicationCodeResolver` looks each drug up in the
-`medcode` view of the G-Standaard database before opening the session, and emits:
+A host identifies a drug by **one** code, PRK or HPK, and may use a different level for each
+entry in the list. Prescriptor needs PRK *and* GPK together (plus HPK where the host had it), so
+`MedicationCodeResolver` looks each drug up in the `medcode` view of the G-Standaard database
+before opening the session, and emits:
 
 ```xml
 <drug pending="false"><GStandaard PRK="18996" GPK="111111"/></drug>
 ```
+
+That enrichment is also what makes a mixed list safe. The `MedicationType` member of the
+open-session call is a single value for the whole list, and upstream it selects which attribute is
+read off *every* `<drug>` — a drug missing that attribute is dropped from surveillance without an
+error. Since every entry is resolved to a PRK, fhir-hub sends `MedicationType` 9 for any non-empty
+list rather than deriving it from the entries, and the host's per-entry level stops mattering. See
+`XmlRpcRequestBuilder.medicationType`.
 
 **An unresolvable drug code fails the request with a 400.** This is deliberate. Surveillance
 running on an incomplete medication list does not fail visibly — it answers "no interaction
@@ -325,7 +333,7 @@ exists so that no response in this API is un-parseable by a FHIR client.
 ## Build and run
 
 ```bash
-mvn test          # 83 tests; no network and no database needed
+mvn test          # 85 tests; no network and no database needed
 mvn spring-boot:run
 docker compose up --build
 ```
@@ -363,12 +371,6 @@ Changing them alters clinical behaviour and needs its own decision.
 
 ## Open items
 
-- **Decide whether the bare upstream token stays routable.** `CodeSystemRegistry` maps `PRK`,
-  `SSK`, `ICPC` and the rest as a `Coding.system`, because that is the form `json-interface`
-  carries in a field of its own, but no profile admits one — so it is reachable only with
-  `fhirhub.validation.enabled=false`, which `TerminologyEnforcementTest` pins. Either commit to
-  that as the documented lenient-input path, or delete the entries and let the mapper reject the
-  token as an unrouted system.
 - **Confirm the OGGrp mapping against a G-Standaard bestandsbeschrijving.** Thesaurus 122
   ("Ongewenste medicatiegroepen") is an inference — it is the only group-level G-Standaard
   system Nictiz publishes and the third G-Standaard member of the CausativeAgent binding
