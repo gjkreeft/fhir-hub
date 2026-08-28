@@ -47,9 +47,14 @@ kind of green run that verifies nothing. Track the version in `metadata`.
 
 | | Meaning | Examples |
 | --- | --- | --- |
-| **Patch** | Editorial only. Not one byte of a `StructureDefinition`, `ValueSet` or `CodeSystem` differs | A clearer sentence, a corrected example description, a fixed link |
+| **Patch** | Nothing changes about what is accepted or emitted: a payload that validated before validates now, and no response carries an element your parser has not seen | A clearer sentence, a corrected `description` or `comment` on a profile, a better example, a fixed link |
 | **Minor** | Additive. Every request that was accepted before is still accepted, and every response you could already parse still parses | A new optional parameter; a new optional element; a widened `max`; a new code in a Digitalis-minted `CodeSystem`; a new accepted lab determination |
 | **Major** | A payload that used to be accepted may now be rejected, or a response may carry something your parser has to be taught | A new required element; a narrowed binding; a removed or renamed parameter; a tightened cardinality; a changed canonical |
+
+Note that a patch can still change the bytes of a `StructureDefinition`: an element's
+`description` and `comment` live inside the profile, so correcting the wording of one alters the
+artifact without altering a single rule. What a version number promises here is about behaviour,
+not about checksums — if you need bytes that cannot move, pin the versioned path.
 
 Two consequences worth stating outright, because they are the ones that surprise people:
 

@@ -88,16 +88,19 @@ else
 fi
 
 echo
-echo "-- the other scheme answers too"
-# A canonical is an http URL, so that is the one integrators paste into a browser. It has to
-# serve content, but it is not the one tooling fetches.
+echo "-- the other scheme gets you to the content too"
+# A canonical is an http URL, so that is the one integrators paste into a browser, and it has to
+# lead somewhere. Redirects are followed rather than rejected: a 301 to https that preserves the
+# path is the right answer, and is what spec.digitalis.nl does. It is not the scheme tooling
+# fetches over — that one refuses http by scheme before making the request — so what matters here
+# is only that a person or a curl ends up at the page.
 other="${BASE/#https:/http:}"
 if [[ "$other" == "$BASE" ]]; then
 	other="${BASE/#http:/https:}"
 	printf 'note  checked over http; https is the one FHIR tooling can fetch\n'
 fi
-check "landing page over ${other%%:*}" "text/html" "$other/fhir/"
-check "package over ${other%%:*}"      "application/gzip" "$other/fhir/package.tgz"
+check "landing page over ${other%%:*} (redirects followed)" "text/html" -L "$other/fhir/"
+check "package over ${other%%:*} (redirects followed)" "application/gzip" -L "$other/fhir/package.tgz"
 
 echo
 echo "-- the whole integrator flow, which is the only check that really counts"
