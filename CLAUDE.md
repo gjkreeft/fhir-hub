@@ -15,14 +15,23 @@ and the open items. This file covers what the README does not: why the code is s
 ## Commands
 
 ```bash
-mvn test                 # 101 tests; no network and no database — WireMock stubs
+mvn test                 # 103 tests; no network and no database — WireMock stubs
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
 docker compose up --build
 
-cd ig && npx sushi .     # rebuild the profiles; see ig/README.md for validating them
+cd ig && npm run sushi   # rebuild the profiles (SUSHI + the version stamp)
+cd ig && npm run build   # the whole published guide: pages -> SUSHI -> IG Publisher
+# publishing: deploy.sh runs ON the web server; see ig/README.md for the tar-over-ssh push
+cd ig && hosting/deploy.sh /srv/spec.digitalis.nl && hosting/verify.sh https://spec.digitalis.nl
 ```
+
+`npm run build` runs its own preflight and names whatever is missing: Java, Node, Jekyll
+(`gem install --user-install jekyll`) or `publisher.jar` in `ig/.pkg/`. Run it rather than the
+publisher directly — it also assembles the PATH the publisher needs to find jekyll, which is a
+failure that otherwise surfaces as a Java stack trace with no mention of gems. See
+`ig/README.md`.
 
 ## Stack
 
@@ -202,7 +211,9 @@ coding in it into a validation *error*. Left undefined, the system falls to
 `required` binding onto a licensed table is ever satisfied. `TerminologyEnforcementTest` fails if
 someone acts on the intuition.
 
-**The profiles live in `ig/`, and the ids in them are load-bearing.** SUSHI derives a canonical
+**The profiles live in `ig/`, and the ids in them are load-bearing.** They are also published —
+see *The published specification* below.
+ SUSHI derives a canonical
 as `{canonical}/StructureDefinition/{Id}`, and those canonicals are on the wire, so renaming an
 id silently breaks every payload in the field. `IgCanonicalsTest` fails if the FSH
 and the constants in `fhir/` drift apart. Note the corollary — base R4 requires
@@ -249,6 +260,85 @@ libraries* above — and a Jackson 2 / Jackson 3 collision does not fail at the 
 caused it: expect the context to fail at `RestClient` construction with
 `NoClassDefFoundError: …JsonSerializeAs`.
 
+## The published specification
+
+`http://spec.digitalis.nl/fhir` is a real site, built from `ig/` by SUSHI and the HL7 IG
+Publisher and deployed as static files. `ig/README.md` covers the build; the parts that decide how
+the rest of the repo has to behave are here.
+
+**The narrative has one source, and it is `IMPLEMENTATION_GUIDE.md`.**
+`ig/scripts/build-pages.mjs` splits it into `ig/input/pagecontent/` and rewrites its
+intra-document anchors into cross-page links. **Do not edit anything under
+`ig/input/pagecontent/`** — it is generated, not committed, and the edit is gone on the next
+build. Three lists have to agree, and the script exits non-zero naming the offender when they do
+not: the guide's `##` sections, the `SECTIONS` table in the script, and the `pages:` block of
+`sushi-config.yaml`. Adding a section to the guide is therefore a two-line change in two files,
+by design — the alternative is a section that never appears on the site and nothing that says so.
+
+The four pages that are about the publication rather than the interface — the front door, the
+change policy, the changelog, the download instructions — are hand-written in `ig/pages/`. The
+front door splices in the guide's preamble at a `<!-- GUIDE-PREAMBLE -->` marker, so the
+orientation text is not written twice either.
+
+**A change to the guide can now be a change to a published contract.** The prose is the
+specification, so an edit that alters what a host may send belongs to a version bump under
+`ig/pages/versioning.md`, an entry in `ig/pages/changelog.md`, and a line in
+`ig/package-list.json` — `deploy.sh` refuses a release missing from the last of those. Editorial
+edits are free.
+
+**`fsh-generated` is versioned by a script, because SUSHI stopped doing it.** With `FSHOnly: true`
+SUSHI stamped `version` on every artifact; now that a real IG is built, it leaves `version`,
+`publisher` and `jurisdiction` to the publisher, which applies them into `output/` only. But
+`fsh-generated/resources` is what the Maven build copies into the jar, so unstamped the *service*
+would enforce version-less profiles while the published package says `0.1.0`, and an
+`OperationOutcome` would stop naming the version its rule came from — which the change policy
+promises it does. `ig/scripts/stamp-version.mjs` puts it back and runs as part of `npm run sushi`;
+`IgCanonicalsTest.theProfilesCarryTheIgVersion` fails if someone runs `sushi .` directly.
+
+**`GET /fhir/metadata` reports the specification release, and that is load-bearing rather than
+decorative.** `SpecificationVersion` reads the version off a profile in the jar and `FhirConfig`
+puts it in `CapabilityStatement.software.version`; HAPI would otherwise announce itself as "HAPI
+FHIR Server" at HAPI's version. The change policy tells integrators to check it before sending a
+parameter introduced in a later release, because the inbound slicing is closed and an unknown name
+is a 400 rather than an ignored element — so without this the policy has no way to be followed.
+It comes off the profiles rather than out of `pom.xml` on purpose: those artifacts are what
+decides what the service accepts, and a number declared anywhere else would be the copy that goes
+stale. `FhirHubIntegrationTest.reportsTheSpecificationReleaseInTheCapabilityStatement` pins it.
+
+**The canonicals dereference because of `ig/hosting/nginx-fhir.conf`, not because of the publisher.**
+The publisher writes flat files — `StructureDefinition-fhirhub-Patient.html`, `.json`, `.xml`,
+`.ttl` — and the canonical on the wire has a path segment. That config maps one onto the other,
+negotiates on `Accept` with `?_format=` overriding, sets `Vary: Accept`, and keeps
+`/fhir/<version>/` as a frozen snapshot. `ig/hosting/apache-htaccess` is the same rules for Apache,
+which is what `www.digitalis.nl` actually runs, and is the one that has been tested end to end
+against a local httpd; the nginx spelling has never been parsed by nginx.
+
+Three traps are recorded in their comments and are all easy to undo by accident.
+**`text/html` has to be tested before `application/xml`** when negotiating on `Accept`, because a
+browser sends both — get it backwards and every browser is handed a raw XML file for a profile it
+asked to read, which is the same trap as the CapabilityStatement rendering in `FhirConfig`, one
+layer down. **`https` is required and `http` is additional**: a canonical is an identifier and the
+one on the wire is `http`, but the HL7 validator's SSRF protection refuses a plain-http *fetch*
+before making the request and is on by default, so an http-only deployment is readable in a
+browser and unusable by tooling. **The `ImplementationGuide` canonical needs its own rule**,
+because the publisher renders no page for it — with the fallback kept out of the general rule, so
+a mistyped canonical is a 404 rather than the landing page dressed up as a profile.
+
+**`ig.ini` takes no comments.** A `;` line makes the publisher report that it cannot find an
+`ig.ini` at all.
+
+**The narrative language is Dutch, inferred from `jurisdiction: NL`,** which is why the QA report
+is in Dutch and why a LOINC `display` in an example must be LOINC's *Dutch* term or none at all.
+The examples send no LOINC display: a wrong one is a validation error rather than a warning,
+because unlike the G-Standaard, LOINC *is* distributed.
+
+**A clean build is `0 errors`, not `0 warnings`.** `ig/input/ignoreWarnings.txt` suppresses four
+template-fragment warnings and nothing else. The G-Standaard "code cannot be validated" notes, the
+missing narratives and the display-less `data-absent-reason` references are all expected, are
+documented for integrators on the Downloads page, and are the class of message that would hide a
+real problem if it were muted. `hosting/deploy.sh` gates on the error count in `output/qa.json` —
+note the key is `errs`, not `errors`.
+
 ## Deliberately different from `json-interface`
 
 **Current medication is enriched before it is sent, and fails closed.** `json-interface` emits
@@ -288,7 +378,7 @@ forwarding, OperationOutcome rendering, and the CapabilityStatement are pinned �
 unit tests cannot see. Fixtures live in `src/test/resources/xmlrpc/`; the stand-in `medcode`
 view is `src/test/resources/gstandaard-medcode.sql`.
 
-Two tests guard claims the rest of the build cannot see, and both look deletable:
+Three tests guard claims the rest of the build cannot see, and all three look deletable:
 
 - `IgExampleConformanceTest` validates every example in `ig/fsh-generated` against the profile it
   declares. SUSHI validates nothing — it converts FSH to JSON — so without this an example can
@@ -296,5 +386,9 @@ Two tests guard claims the rest of the build cannot see, and both look deletable
 - `TerminologyEnforcementTest` pins which `Coding.system` forms a session can be opened with, and
   fails if a G-Standaard code system is defined in `ig/`. See *Do not define the G-Standaard code
   systems in `ig/`* above.
+- `IgCanonicalsTest.theProfilesCarryTheIgVersion` fails when the committed profiles have lost the
+  `version` SUSHI no longer stamps. Nothing else would notice: validation keeps working, and only
+  the version in an `OperationOutcome` quietly disappears. See *The published specification*
+  above.
 
 `json-interface` had no tests at all. Keep this one from going the same way.

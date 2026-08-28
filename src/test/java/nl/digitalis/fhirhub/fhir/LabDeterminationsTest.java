@@ -16,8 +16,8 @@ import nl.digitalis.fhirhub.fhir.LabDeterminations.Determination;
 
 /**
  * The accepted determinations are written down twice — as a Java table that maps each LOINC code
- * onto the NHG triple and the units it accepts, and as the value set the profile binds — and the
- * two meet only in a payload. This is the test that notices when they drift.
+ * onto its MFB parameter, its caption and the units it accepts, and as the value set the profile
+ * binds — and the two meet only in a payload. This is the test that notices when they drift.
  */
 class LabDeterminationsTest {
 

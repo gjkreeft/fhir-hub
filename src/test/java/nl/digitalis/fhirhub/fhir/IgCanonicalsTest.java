@@ -5,6 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +25,7 @@ class IgCanonicalsTest {
 
 	private static final Path FSH = Path.of("ig", "input", "fsh");
 
-	private static final String CANONICAL = "http://spec.digitalis.nl/fhir";
+	private static final String CANONICAL = Profiles.CANONICAL;
 
 	@Test
 	void theIgDefinesTheExtensionsAtTheUrlsThisServiceEmits() throws IOException {
@@ -84,6 +89,50 @@ class IgCanonicalsTest {
 		assertThat(Profiles.CREATERX_SESSION_INPUT).startsWith(CANONICAL + "/");
 		assertThat(Profiles.SESSION_OUTPUT).startsWith(CANONICAL + "/");
 		assertThat(Profiles.RESULT_BUNDLE).startsWith(CANONICAL + "/");
+	}
+
+	/**
+	 * Every conformance resource the jar ships has to declare the IG's version.
+	 *
+	 * <p>SUSHI stops stamping {@code version} once it is generating a real Implementation Guide —
+	 * the IG Publisher applies it on the way into {@code output/} instead. That is fine for the
+	 * published site and wrong here, because {@code ig/fsh-generated/resources} is copied into the
+	 * jar and validated against at runtime: unstamped, this service would enforce version-less
+	 * profiles while the published package says 0.1.0, and an {@code OperationOutcome} would stop
+	 * naming the version the rule came from. {@code ig/scripts/stamp-version.mjs} puts it back, and
+	 * this test is what notices when someone runs {@code sushi .} directly instead of
+	 * {@code npm run sushi}.
+	 */
+	@Test
+	void theProfilesCarryTheIgVersion() throws IOException {
+		String version = versionFromSushiConfig();
+		List<Path> unstamped = new ArrayList<>();
+
+		try (Stream<Path> files = Files.list(Path.of("ig", "fsh-generated", "resources"))) {
+			for (Path file : files.sorted().toList()) {
+				String name = file.getFileName().toString();
+				boolean conformance = name.startsWith("StructureDefinition-")
+						|| name.startsWith("ValueSet-")
+						|| name.startsWith("CodeSystem-");
+
+				if (conformance && !Files.readString(file).contains("\"version\": \"" + version + "\"")) {
+					unstamped.add(file);
+				}
+			}
+		}
+
+		assertThat(unstamped)
+				.as("conformance resources declaring version %s — run 'npm run sushi' in ig/", version)
+				.isEmpty();
+	}
+
+	private String versionFromSushiConfig() throws IOException {
+		Matcher version = Pattern.compile("^version: *\"?([^\"\\s]+)\"?$", Pattern.MULTILINE)
+				.matcher(Files.readString(Path.of("ig", "sushi-config.yaml")));
+
+		assertThat(version.find()).as("sushi-config.yaml declares a version").isTrue();
+
+		return version.group(1);
 	}
 
 	/** SUSHI turns "Id: x" into {canonical}/StructureDefinition/x — or /CodeSystem/x. */

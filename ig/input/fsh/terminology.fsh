@@ -1,6 +1,6 @@
 // Code systems and value sets for the fhir-hub payloads.
 //
-// The OID-based systems below (ICPC-1 NL, PRK, HPK, GPK, NHG Tabel 45) are national
+// The OID-based systems below (ICPC-1 NL, PRK, HPK, GPK and the four G-Standaard subsystems) are national
 // identifiers and are NOT defined here — they belong to HL7 NL and the NHG, and every OID was
 // taken from the HL7 NL OID register rather than from memory. Only the systems Digitalis
 // actually mints are defined as CodeSystems in this IG.
@@ -37,6 +37,7 @@ Id: gstandaard-bijzonder-kenmerk
 Title: "G-Standaard bijzondere kenmerken (Opiumwet)"
 Description: "The Opiumwet subset of G-Standaard bestand BST401T (thesaurus BST922T). No OID is registered for this table, so a Digitalis-local URI is used."
 * ^status = #draft
+* ^experimental = false
 * ^content = #complete
 * ^caseSensitive = true
 * #2   "Product valt onder Opiumwet in volle omvang"
@@ -64,6 +65,7 @@ Id: allergy-causative-agent
 Title: "Allergy causative agent (SSK, SNK, OGGrp)"
 Description: "Causative agents fhir-hub routes to Prescriptor. Which member carries which subsystem is set by prescriptor-api's OpenSessionRequestBuilder.getAllergies."
 * ^status = #draft
+* ^experimental = false
 * include codes from system $ssk
 * include codes from system $snk
 * include codes from system $oggrp
@@ -73,6 +75,7 @@ Id: contra-indication
 Title: "Contra-indication (CICode or ICPC-1 NL)"
 Description: "Contra-indications fhir-hub routes to Prescriptor, as either a G-Standaard CICode or an ICPC-1 NL code."
 * ^status = #draft
+* ^experimental = false
 * include codes from system $cicode
 * include codes from system $icpc
 
@@ -81,6 +84,7 @@ Id: medication-code
 Title: "Medication code (PRK or HPK)"
 Description: "Product code levels accepted for current medication. Each entry carries its own level, so PRK and HPK may be mixed within one list."
 * ^status = #draft
+* ^experimental = false
 * include codes from system $prk
 * include codes from system $hpk
 
@@ -89,6 +93,7 @@ Id: dispensed-medication-code
 Title: "Prescribed medication code (PRK, GPK, HPK or ATC)"
 Description: "Codings that may appear on a MedicationRequest returned by $session-result. Exactly one of PRK, GPK and HPK is present — the level the prescription was written at — with an ATC beside it when the upstream supplies one."
 * ^status = #draft
+* ^experimental = false
 * include codes from system $prk
 * include codes from system $gpk
 * include codes from system $hpk
@@ -99,6 +104,7 @@ Id: icpc-1-nl
 Title: "ICPC-1 NL"
 Description: "Reason for encounter. The code shape is additionally constrained by an invariant, because ICPC-1 NL is not expanded here."
 * ^status = #draft
+* ^experimental = false
 * include codes from system $icpc
 
 // The determinations medication surveillance actually reads, and nothing else.
@@ -110,13 +116,15 @@ Description: "Reason for encounter. The code shape is additionally constrained b
 // data had been weighed when nothing looked at it.
 //
 // Enumerated rather than "include codes from system http://loinc.org", so the binding says which
-// codes are meant. fhir/LabDeterminations.java carries the same list with the NHG Tabel 45 triple
-// each code is forwarded as and the units it accepts; LabDeterminationsTest pins the two together.
+// codes are meant. fhir/LabDeterminations.java carries the same list with the MFB parameter each
+// code feeds, the caption sent when a host supplies no display, and the units it accepts;
+// LabDeterminationsTest pins the two together.
 ValueSet: LabDeterminationVS
 Id: lab-determination
 Title: "Laboratory determinations medication surveillance reads"
 Description: "The LOINC codes accepted on Parameters.parameter:observation. These are the codes the G-Standaard itself attaches to its MFB parameters (BST684T rows with MFBEXSRT = 4, 'LOINC / Nederlandse Labcodeset'), so the rules engine can test what a host sends: eGFR, kalium, INR, sirolimus, natrium and lithium, plus weight and height for dose checking. One eGFR code only — Dutch laboratories report CKD-EPI, so the MDRD and cystatin C codes the G-Standaard also lists are not accepted here."
 * ^status = #draft
+* ^experimental = false
 * $loinc#62238-1 "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI)/1.73 sq M"
 * $loinc#2823-3 "Potassium [Moles/volume] in Serum or Plasma"
 * $loinc#6298-4 "Potassium [Moles/volume] in Blood"
@@ -133,4 +141,5 @@ Id: opium-act-classification
 Title: "Opiumwet classification"
 Description: "The Opiumwet codes from G-Standaard BST401T rubriek 72."
 * ^status = #draft
+* ^experimental = false
 * include codes from system GStandaardBijzonderKenmerk

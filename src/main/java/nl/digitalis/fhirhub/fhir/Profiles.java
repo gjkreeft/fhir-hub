@@ -12,6 +12,15 @@ package nl.digitalis.fhirhub.fhir;
  */
 public final class Profiles {
 
+	/**
+	 * The Implementation Guide's canonical, and the host that serves it.
+	 *
+	 * <p>Deliberately not used to build the constants below: an integrator reading a payload greps
+	 * for the whole URL, and so does anyone chasing one through this codebase, so each is written
+	 * out. {@code IgCanonicalsTest} checks that they all sit under this one.
+	 */
+	public static final String CANONICAL = "http://spec.digitalis.nl/fhir";
+
 	public static final String FORMULARY_SESSION_INPUT =
 			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput";
 

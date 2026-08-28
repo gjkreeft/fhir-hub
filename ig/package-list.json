@@ -1,0 +1,18 @@
+{
+  "package-id": "nl.digitalis.fhirhub",
+  "title": "Digitalis fhir-hub Implementation Guide",
+  "canonical": "http://spec.digitalis.nl/fhir",
+  "introduction": "FHIR R4 conformance artifacts for the Digitalis Prescriptor 3 interface: the payloads of $formulary-session, $createrx-session and $session-result.",
+  "list": [
+    {
+      "version": "0.1.0",
+      "date": "2026-08-28",
+      "desc": "First release. The three operations, 13 profiles, 2 extensions, 1 code system and 9 value sets.",
+      "path": "http://spec.digitalis.nl/fhir/0.1.0",
+      "status": "draft",
+      "sequence": "Draft",
+      "fhirversion": "4.0.1",
+      "current": true
+    }
+  ]
+}

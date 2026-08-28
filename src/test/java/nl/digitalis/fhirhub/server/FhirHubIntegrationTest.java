@@ -240,6 +240,27 @@ class FhirHubIntegrationTest {
 	}
 
 	/**
+	 * Which release of the published specification this deployment implements has to be
+	 * answerable, because the change policy tells integrators to check it: a parameter name
+	 * introduced in a later release is a 400 here rather than an ignored element, since the
+	 * inbound slicing is closed. The number comes off the profiles in the jar, so this also fails
+	 * if those were built without the version stamp.
+	 */
+	@Test
+	void reportsTheSpecificationReleaseInTheCapabilityStatement() {
+		CapabilityStatement statement = parser.parseResource(CapabilityStatement.class,
+				getAnonymous("/fhir/metadata").body());
+
+		assertThat(statement.getSoftware().getName()).isEqualTo("Digitalis fhir-hub");
+		assertThat(statement.getSoftware().getVersion())
+				.as("the IG version, not HAPI's")
+				.matches("\\d+\\.\\d+\\.\\d+");
+		assertThat(statement.getImplementation().getDescription())
+				.contains("http://spec.digitalis.nl/fhir")
+				.contains(statement.getSoftware().getVersion());
+	}
+
+	/**
 	 * The CapabilityStatement is public and links each operation to an OperationDefinition, so
 	 * those links have to resolve for the same anonymous integrator that just read them.
 	 */

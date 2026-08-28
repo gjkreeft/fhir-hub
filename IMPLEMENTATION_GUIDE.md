@@ -1,7 +1,7 @@
 # fhir-hub Implementation Guide
 
-FHIR R4 interface to **Prescriptor 3**. This document is the integration reference: the flow, and
-every endpoint with its input and output specification.
+FHIR R4 interface to **Prescriptor 3**. This is the integration reference: the flow, and every
+endpoint with its input and output specification.
 
 - **FHIR version** — R4 (4.0.1). All payloads are `Parameters` or `Bundle`; there is no resource
   REST API and no search.
@@ -11,10 +11,10 @@ every endpoint with its input and output specification.
   [Moving from the JSON API](#moving-from-the-json-api).
 - **Statelessness** — no session store, so persist the session id yourself, and store the result
   Bundle when you receive it. Nothing can be re-fetched.
-- **Normative status** — this document is the specification in prose. The machine-readable form is
-  the implementation guide published under the canonical `http://spec.digitalis.nl/fhir`: every
-  payload described here has a `StructureDefinition` you can validate against, and every request is
-  checked against its profile before it is processed. See [Profiles](#profiles).
+- **Normative status** — the prose and the `StructureDefinition`s are one specification, published
+  together under the canonical `http://spec.digitalis.nl/fhir`. Every payload described here has a
+  profile you can validate against, and every request is checked against its profile before it is
+  processed. See [Profiles](#profiles).
 
 ## Table of contents
 
@@ -121,6 +121,13 @@ issued.
 ```bash
 curl -sS 'http://localhost:8080/fhir/metadata?_format=json'
 ```
+
+**`software.version` is the release of this specification the deployment implements**, e.g.
+`0.1.0` — not a build number of the service, and not the FHIR version, which is `fhirVersion`.
+Read it before you start sending anything introduced in a later release: a parameter name this
+deployment does not know is a 400 rather than an ignored element, because the request profiles
+close the list of names. `implementation.description` names the same release alongside the
+canonical.
 
 The statement links each operation to a generated `OperationDefinition`:
 `/fhir/OperationDefinition/-s-formulary-session`, `…/-s-createrx-session` and
@@ -241,8 +248,7 @@ Authorization: Basic ...
         "resourceType": "Observation",
         "status": "final",
         "code": { "coding": [ {
-          "system": "http://loinc.org", "code": "62238-1",
-          "display": "eGFR volgens CKD-EPI" } ] },
+          "system": "http://loinc.org", "code": "62238-1" } ] },
         "effectiveDateTime": "2024-07-04",
         "valueQuantity": { "value": 65, "unit": "mL/min/1.73m2",
                            "system": "http://unitsofmeasure.org",
@@ -505,6 +511,13 @@ it against ml/min thresholds unchanged, and the payload should at least be unamb
 quantity it carries. Where a conversion is exact it is done for you: a length in `m` is forwarded in
 centimetres.
 
+**Leave `display` out unless it is LOINC's own term.** It is not ignored — a `display` you send
+becomes the caption Prescriptor shows the prescriber — but a display that disagrees with LOINC is a
+hard validation error rather than a warning, because unlike the G-Standaard tables LOINC *is*
+distributed with the validator, and a helpful local label is exactly the kind of thing it rejects.
+Omitting it costs nothing: this interface then supplies its own caption, which for `62238-1` is
+`eGFR volgens CKD-EPI`. So send the code alone, or LOINC's published term for it verbatim.
+
 **Dates matter as much as values.** The rules test both — *is the ClCr older than 13 months*, *is
 the kaliumspiegel older than 72 hours*, *is de INR max. 24 uur oud* — so `effectiveDateTime` is
 required, and it must be when the sample was taken rather than when the report was released. A
@@ -623,9 +636,9 @@ code could not be verified, and a coding from any other system is an error. The 
 
 ## Extensions
 
-Two, both Digitalis-defined because no national artifact covers them. Ask Digitalis for the
-`StructureDefinition`s if your tooling needs them — the canonical URLs do not dereference, see
-[Current limitations](#current-limitations).
+Two, both Digitalis-defined because no national artifact covers them. Both canonical URLs below
+dereference: a browser gets the definition page, and `Accept: application/fhir+json` gets the
+`StructureDefinition` itself.
 
 **`ext-Dosage.CodedDirections`** —
 `http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections`, `valueString`. The NHG
@@ -773,11 +786,6 @@ it.
 Things you may expect to be able to do, and cannot yet. Each is a gap in the published artifacts,
 not in the running service.
 
-- **The canonical URLs do not dereference yet.** `http://spec.digitalis.nl/fhir/...` appears in
-  every payload and the definitions exist, but the host is not serving them yet. Request the IG
-  package from Digitalis and load it locally. Note the consequence if your tooling resolves
-  profiles over the network: an unresolvable profile is reported as *not checked* rather than as
-  a failure, so a validation run can report success having verified nothing.
 - **No `meta.profile` is asserted** on any resource, so do not filter or route on it. Validate
   against the profile URLs above explicitly instead. The IG's example instances do carry one,
   because the publishing tool adds it; a live payload does not.
@@ -787,9 +795,14 @@ not in the running service.
   `Observation.category` this interface neither sends nor reads, and `nl-core-MedicationUse2` is
   not published in the nl-core package. Ask Digitalis before building anything that depends on
   nl-core conformance.
-- **The artifacts are `draft`, at version `0.1.0`,** and no versioning policy is agreed yet: there
-  is no path versioning and no published change policy. Agree with Digitalis how you want to be
-  told about a change before you go live.
+- **The artifacts are `draft`, at version `0.1.0`.** The change policy is published, and while the
+  status is `draft` it allows a breaking change at a minor version — see *Versioning and change
+  policy* in the published guide. Agree with Digitalis how you want to be told about a change
+  before you go live.
+- **The G-Standaard code systems are not distributed**, so no validator can check a G-Standaard
+  *code* — only the `system` it came from. A wrong code inside a system this interface routes
+  reaches Prescriptor, and comes back as a 400 from the medication lookup rather than as a
+  validation error.
 
 Questions, or a case this document does not cover: contact Digitalis. If you are moving from the
 JSON API, ask for the field-by-field mapping table, which lists each JSON field alongside its FHIR

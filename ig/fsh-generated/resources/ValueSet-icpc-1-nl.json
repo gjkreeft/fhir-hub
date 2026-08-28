@@ -5,8 +5,9 @@
   "id": "icpc-1-nl",
   "title": "ICPC-1 NL",
   "description": "Reason for encounter. The code shape is additionally constrained by an invariant, because ICPC-1 NL is not expanded here.",
-  "version": "0.1.0",
   "url": "http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl",
+  "version": "0.1.0",
+  "experimental": false,
   "compose": {
     "include": [
       {

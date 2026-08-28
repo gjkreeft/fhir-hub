@@ -6,8 +6,8 @@
   "id": "gstandaard-bijzonder-kenmerk",
   "title": "G-Standaard bijzondere kenmerken (Opiumwet)",
   "description": "The Opiumwet subset of G-Standaard bestand BST401T (thesaurus BST922T). No OID is registered for this table, so a Digitalis-local URI is used.",
-  "version": "0.1.0",
   "url": "http://spec.digitalis.nl/fhir/CodeSystem/gstandaard-bijzonder-kenmerk",
+  "version": "0.1.0",
   "concept": [
     {
       "code": "2",
@@ -22,6 +22,7 @@
       "display": "Grondstof valt onder Opiumwet in volle omvang"
     }
   ],
+  "experimental": false,
   "caseSensitive": true,
   "count": 3
 }

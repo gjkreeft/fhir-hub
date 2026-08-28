@@ -9,7 +9,7 @@
   "description": "Everything the two session operations have in common. Use FhirHubFormularySessionInput or FhirHubCreateRxSessionInput rather than this directly.",
   "fhirVersion": "4.0.1",
   "kind": "resource",
-  "abstract": false,
+  "abstract": true,
   "type": "Parameters",
   "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Parameters",
   "derivation": "constraint",

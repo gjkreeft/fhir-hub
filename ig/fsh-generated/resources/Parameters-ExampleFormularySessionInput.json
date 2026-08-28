@@ -158,8 +158,7 @@
           "coding": [
             {
               "system": "http://loinc.org",
-              "code": "62238-1",
-              "display": "eGFR volgens CKD-EPI"
+              "code": "62238-1"
             }
           ]
         },

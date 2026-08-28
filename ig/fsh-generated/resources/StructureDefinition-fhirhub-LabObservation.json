@@ -6,7 +6,7 @@
   "name": "FhirHubLabObservation",
   "title": "fhir-hub laboratory Observation",
   "status": "draft",
-  "description": "A laboratory determination, coded with the 8-position NHG Tabel 45 sleutelcode.",
+  "description": "A single laboratory determination or body measurement, coded in LOINC, from the closed list of determinations medication surveillance reads.",
   "fhirVersion": "4.0.1",
   "kind": "resource",
   "abstract": false,
@@ -24,7 +24,7 @@
         "id": "Observation.code",
         "path": "Observation.code",
         "short": "One LOINC code, from the determinations medication surveillance reads",
-        "comment": "The list is closed and short, because the G-Standaard's list of testable measurements is: see LabDeterminationVS. A determination outside it is a 400 rather than a value that is quietly ignored — a prescriber who sent a lab result and got no signal would otherwise read that as an all-clear. Coding.display is passed on as the caption Prescriptor shows.",
+        "comment": "The list is closed and short, because the G-Standaard's list of testable measurements is: see LabDeterminationVS. A determination outside it is a 400 rather than a value that is quietly ignored — a prescriber who sent a lab result and got no signal would otherwise read that as an all-clear. Coding.display is passed on as the caption Prescriptor shows, and is best left out: this interface supplies its own caption, while a display that is not LOINC's own term for the code is a validation error in any tooling that has LOINC loaded.",
         "binding": {
           "strength": "required",
           "valueSet": "http://spec.digitalis.nl/fhir/ValueSet/lab-determination"

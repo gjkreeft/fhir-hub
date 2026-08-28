@@ -26,6 +26,12 @@ GET    /fhir/$session-result?session=  ->  Bundle (MedicationRequest, Communicat
 GET    /fhir/metadata                  ->  CapabilityStatement (unauthenticated)
 ```
 
+`software.version` on that statement is the release of the published specification the deployment
+implements, read off the profiles in the jar by `SpecificationVersion` — see *Publishing*. It is
+how an integrator following the change policy finds out whether a parameter introduced in a later
+release will be accepted, which matters because the inbound slicing is closed and an unknown
+parameter name is a 400.
+
 Responses are JSON by default. A browser gets a syntax-highlighted HTML rendering, because
 HAPI's `ResponseHighlighterInterceptor` is registered; `?_format=json`, `?_format=xml` or
 `?_format=html` overrides that for any client.
@@ -91,10 +97,11 @@ Authorization: Basic ...
         "resourceType": "Observation",
         "status": "final",
         "code": { "coding": [ {
-          "system": "urn:oid:2.16.840.1.113883.2.4.4.30.45", "code": "ALDO-B",
-          "display": "aldosteron in bloed" } ] },
+          "system": "http://loinc.org", "code": "62238-1" } ] },
         "effectiveDateTime": "2024-07-04",
-        "valueQuantity": { "value": 10 } } }
+        "valueQuantity": { "value": 65, "unit": "mL/min/1.73m2",
+                           "system": "http://unitsofmeasure.org",
+                           "code": "mL/min/{1.73_m2}" } } }
   ]
 }
 ```
@@ -247,7 +254,7 @@ The canonical is **`http://spec.digitalis.nl/fhir`**. A subdomain rather than `d
 so the artifacts are independent of the corporate site's lifecycle and can be served as static
 files by whoever owns the IG, and `spec.` rather than `fhir.` so the name stays free for the
 running service and leaves room under `/fhir` for the other contract Digitalis publishes,
-`json-interface`'s OpenAPI. Nothing is served there yet — see *Open items*.
+`json-interface`'s OpenAPI. What is served there, and how, is under *Publishing* below.
 
 StructureDefinitions for every payload live in `ig/`, written in FSH and built with SUSHI. They
 cover the two session inputs, the session output, the `$session-result` Bundle, the five
@@ -309,6 +316,56 @@ That 70 ms is real overhead on an operation whose own work is one XML-RPC round 
 rejecting a malformed payload before a session is opened upstream, which is the failure that is
 expensive to undo.
 
+## Publishing
+
+The specification is published as an Implementation Guide at the canonical, built from `ig/`:
+
+```bash
+cd ig && npm run build            # pages -> SUSHI -> HL7 IG Publisher; output in ig/output/
+hosting/deploy.sh /srv/spec.digitalis.nl        # on the host
+hosting/verify.sh https://spec.digitalis.nl
+```
+
+The server half is two nginx includes — `hosting/nginx-maps.conf` in the `http` context and
+`hosting/nginx-fhir.conf` inside the `spec.digitalis.nl` server block. Split that way because the
+host already owns a working vhost with its certificate and a placeholder at `/`: a whole-vhost
+config would have to be merged into it by hand every time either side changed.
+
+The narrative is not written in the IG. `IMPLEMENTATION_GUIDE.md` is the whole of it, and
+`ig/scripts/build-pages.mjs` splits it into pages — a specification that exists twice is a
+specification that disagrees with itself. The script fails if the guide's sections, its own
+mapping table and the `pages:` block of `sushi-config.yaml` stop agreeing, so a section added to
+the guide cannot silently go unpublished. Only the four pages that are about the publication
+rather than the interface are written in `ig/pages/`: the front door, the change policy, the
+changelog, and the download instructions.
+
+**The hosting is the part the publisher does not do.** It produces flat files —
+`StructureDefinition-fhirhub-Patient.html`, `.json`, `.xml`, `.ttl` — and the canonical on the
+wire is `/fhir/StructureDefinition/fhirhub-Patient`. `ig/hosting/nginx-fhir.conf` maps one onto the
+other, picks the representation from `Accept` with `?_format=` overriding it, and sets `Vary:
+Accept` so nothing in between can serve a page to a validator. `deploy.sh` also freezes each
+release at `/fhir/<version>/`, and refuses to overwrite one that is already published: an
+integrator who pinned a version has validated against those bytes and would not be told.
+
+Both schemes answer, and `https` is not the optional half. A canonical is an identifier, and the
+one in every payload already in the field is `http` — but *fetching* is a separate matter: the HL7
+validator's SSRF protection refuses a plain-`http` fetch before it makes the request, is on by
+default, and by its own help text "should always be enabled in production" (measured against
+`validator_cli` 6.x, not assumed). Serve only `http` and the guide is readable in a browser and
+unusable by tooling. `http` still serves content rather than redirecting, because the URL
+integrators have in front of them is the `http` one.
+
+**The change policy is published too**, because with a dozen HIS suppliers there is no other way
+to say what a version number means. It is in `ig/pages/versioning.md`: additive-only within a
+major, both an unversioned and a versioned address per artifact, and — while the status is
+`draft` — an explicit warning that a breaking change can still arrive at a minor version. Cutting
+a release means bumping `version` in `sushi-config.yaml`, adding an entry to `ig/package-list.json`
+*and* to `ig/pages/changelog.md`, and rebuilding; `deploy.sh` refuses a release that is missing
+from `package-list.json`, which is what tooling reads to discover releases.
+
+Building needs Java, Node and Jekyll, plus the publisher jar. `ig/README.md` has the details and
+the traps.
+
 ## Extensions
 
 Two, both checked against Nictiz first — nothing in nl-core, zib2020, or Medicatieproces 9
@@ -341,7 +398,7 @@ exists so that no response in this API is un-parseable by a FHIR client.
 ## Build and run
 
 ```bash
-mvn test          # 101 tests; no network and no database needed
+mvn test          # 103 tests; no network and no database needed
 mvn spring-boot:run
 docker compose up --build
 ```
@@ -384,15 +441,50 @@ Changing them alters clinical behaviour and needs its own decision.
   system Nictiz publishes and the third G-Standaard member of the CausativeAgent binding
   alongside SSK and SNK — but nothing published uses the token `OGGrp`, so it is the one of the
   four that was not read off a label. See `Systems.G_STANDAARD_OGGRP`.
-- **Serve the canonicals.** Nothing answers at `http://spec.digitalis.nl/fhir/…` — the DNS name
-  does not exist yet. Until it does, a validator that resolves profiles over the network reports
-  an unresolvable profile as *not checked* rather than as a failure, so an integrator can get a
-  green run that verified nothing. Static files behind that host, `application/fhir+json` with
-  content negotiation, current at `/fhir/…` and versioned snapshots at `/fhir/<version>/…`.
-- **Publish an Implementation Guide.** With a dozen HIS suppliers and several XIS systems,
-  profiles, examples, and a changelog need to be published rather than described in a README.
-- **Versioning policy.** `version` has left the payload. Path versioning plus an additive-only
-  change policy needs to be agreed before the first integrator goes live.
+- **Publish the guide to `spec.digitalis.nl`.** The host is up — nginx at 37.97.148.163, a valid
+  certificate, and `http` 301s to `https` preserving the path — and serves a placeholder at `/`.
+  `/fhir/` is still a 404, so `IMPLEMENTATION_GUIDE.md` currently describes canonicals that do not
+  yet answer. Remaining: install `ig/hosting/nginx-maps.conf` and `ig/hosting/nginx-fhir.conf`, run
+  `deploy.sh` on the host, then `verify.sh`. Until then hand out `ig/output/package.tgz` directly,
+  because an integrator's validator reports an unresolvable profile as *not checked* rather than as
+  a failure — a green run that verified nothing.
+- **`ig/hosting/nginx-fhir.conf` has never been parsed by nginx.** Every canonical was checked to
+  map onto a file that exists, and the identical rules were tested end to end in their Apache
+  spelling — every canonical, all four representations, `?_format=` beating `Accept`, the dotted
+  extension id, the versioned snapshot, a mistyped canonical still 404, and a `validator_cli` run
+  that loaded the package over HTTP from it. But neither nginx nor a container runtime was
+  available where it was written, so `nginx -t` on the host is the first thing that will have read
+  it. `ig/hosting/apache-htaccess` is the tested reference for what the rules are meant to do, and
+  the one to use if the guide ever moves to the Apache host that serves `www.digitalis.nl`.
+- **Agree the change policy with the integrators.** It is written and published
+  (`ig/pages/versioning.md`), which is not the same as agreed. The part that needs their answer is
+  how they want to be told about a release, and how long they need between the announcement and
+  the deployment — a new parameter name is additive for this service and a 400 for a host that
+  sends it too early, because the inbound slicing is closed.
+- **Register an OID root for the terminology, or leave the ten warnings standing.** The publisher
+  asks for an OID on each `CodeSystem` and `ValueSet` — a second identifier on the *artifact*, so
+  a consumer that names terminology by OID rather than by URI can reference it. Note that this is
+  not the OID of the underlying table: `gstandaard-bijzonder-kenmerk` uses a Digitalis URI because
+  no OID is registered for BST401T, and an artifact OID would not change that.
+
+  Nothing consumes these by OID today. The warning's own rationale is "possible use with OID based
+  terminology systems e.g. CDA usage", and this interface is FHIR R4 only — every binding is
+  resolved by canonical URL, in the published IG and at runtime. So the warnings are left visible
+  rather than suppressed or answered.
+
+  Doing it properly means a root registered with HL7 NL under `2.16.840.1.113883.2.4.3.x`, the
+  register's "Assigning authorities via HL7 NL" branch; Digitalis is not in the copy at
+  `ig/.pkg/oidreg.txt`. The tooling permits self-assignment and `Systems.java` is the reason not
+  to: those OIDs came off the register, and minting one here to quiet a warning would put an
+  unregistered, permanent identifier into published artifacts.
+
+  If a root is ever registered: `auto-oid-root: <root>` under `parameters:` in `sushi-config.yaml`
+  clears all ten. One trap, measured — the publisher writes its assignments to
+  `fsh-generated/resources/oids.ini`, which is the directory SUSHI wipes on every run, and that
+  file says of itself that it must be committed. Assignment is per resource type and alphabetical
+  (`ValueSet = <root>.48.1…`), so it survives a wipe unchanged only while the set of artifacts
+  does. Adopting it therefore needs the file kept outside `fsh-generated` and restored before the
+  publisher runs, the way `stamp-version.mjs` restores the version.
 - **A sandbox for integrator self-testing.** `../tests-digitalisrx-testpatients` is the
   natural seed.
 - **No resource sets `meta.profile`.** `fhir/Profiles.java` holds the canonicals and the

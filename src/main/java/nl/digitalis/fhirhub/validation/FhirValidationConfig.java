@@ -127,7 +127,7 @@ public class FhirValidationConfig {
 			// is the point: a validator with no profiles accepts everything, so the service
 			// would look healthy while enforcing nothing at all.
 			throw new IllegalStateException(
-					"No profiles found at " + PROFILE_LOCATION + ". Run 'npx sushi .' in ig/ and rebuild.");
+					"No profiles found at " + PROFILE_LOCATION + ". Run 'npm run sushi' in ig/ and rebuild.");
 		}
 
 		for (Resource profile : profiles) {

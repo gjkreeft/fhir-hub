@@ -16,3 +16,14 @@ target/
 # committed output no longer covers what the code expects.
 ig/node_modules/
 ig/.pkg/
+
+# The published site and everything the IG Publisher needs to build it. `ig/input/pagecontent`
+# is generated from IMPLEMENTATION_GUIDE.md by ig/scripts/build-pages.mjs — the guide and
+# ig/pages are the sources of record, and editing a file under pagecontent loses the edit on the
+# next build.
+ig/input/pagecontent/
+ig/output/
+ig/output_comparison/
+ig/temp/
+ig/template/
+ig/input-cache/

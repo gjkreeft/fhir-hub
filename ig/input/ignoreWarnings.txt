@@ -1,0 +1,15 @@
+== Suppressed Messages ==
+
+# Warnings the publisher raises about the publication rather than about the payloads. Every
+# other warning is left visible on purpose: the G-Standaard "code cannot be validated" notes,
+# the missing narratives and the display-less data-absent-reason references are all expected,
+# are documented for integrators on the Downloads page, and are the class of message that would
+# hide a real problem if it were muted here.
+
+# fhir.base.template's page layout does not include these fragments, and this guide has nothing
+# to put in them: no IP statements to make beyond the G-Standaard licence note, no other FHIR
+# version to compare against, no package dependencies, and no global profiles.
+The HTML fragment 'ip-statements.xhtml' is not included anywhere in the produced implementation guide
+An HTML fragment from the set [cross-version-analysis.xhtml, cross-version-analysis-inline.xhtml] is not included anywhere in the produced implementation guide
+An HTML fragment from the set [dependency-table.xhtml, dependency-table-short.xhtml, dependency-table-nontech.xhtml] is not included anywhere in the produced implementation guide
+The HTML fragment 'globals-table.xhtml' is not included anywhere in the produced implementation guide

@@ -47,7 +47,12 @@ Usage: #inline
 * status = #final
 * code.coding[0].system = "http://loinc.org"
 * code.coding[0].code = #62238-1
-* code.coding[0].display = "eGFR volgens CKD-EPI"
+// No display, and nothing is lost by that: SessionParametersMapper falls back to the caption in
+// fhir/LabDeterminations.java, which for this code is "eGFR volgens CKD-EPI" — the very string
+// that used to sit here. It had to go because LOINC's own term for 62238-1 is "Glomerulaire
+// filtratiesnelheid/1,73 m2.voorspeld [filtratiesnelheid/oppervlakte] in serum of plasma of
+// bloed d.m.v. formule gebaseerd op creatinine (CKD-EPI)", and a validator with LOINC loaded
+// rejects anything else as a wrong display name — a friendly local label included.
 * effectiveDateTime = "2024-07-04"
 * valueQuantity.value = 65
 * valueQuantity.unit = "mL/min/1.73m2"

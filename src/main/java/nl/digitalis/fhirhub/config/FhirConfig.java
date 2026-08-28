@@ -15,6 +15,8 @@ import ca.uhn.fhir.rest.api.EncodingEnum;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
 import jakarta.servlet.annotation.WebServlet;
+import nl.digitalis.fhirhub.fhir.Profiles;
+import nl.digitalis.fhirhub.fhir.SpecificationVersion;
 import nl.digitalis.fhirhub.server.BaseProvider;
 
 /** Wires the HAPI FHIR server and the HTTP client that talks to Prescriptor. */
@@ -33,8 +35,9 @@ public class FhirConfig {
 	}
 
 	@Bean
-	ServletRegistrationBean<RestfulServer> fhirServlet(FhirContext fhirContext, List<BaseProvider> providers) {
-		RestfulServer server = new FhirHubRestfulServer(fhirContext, providers);
+	ServletRegistrationBean<RestfulServer> fhirServlet(FhirContext fhirContext, List<BaseProvider> providers,
+			SpecificationVersion specification) {
+		RestfulServer server = new FhirHubRestfulServer(fhirContext, providers, specification);
 
 		ServletRegistrationBean<RestfulServer> registration =
 				new ServletRegistrationBean<>(server, FHIR_BASE + "/*");
@@ -67,9 +70,20 @@ public class FhirConfig {
 
 		private static final long serialVersionUID = 1L;
 
-		FhirHubRestfulServer(FhirContext fhirContext, List<BaseProvider> providers) {
+		FhirHubRestfulServer(FhirContext fhirContext, List<BaseProvider> providers,
+				SpecificationVersion specification) {
 			super(fhirContext);
 			registerProviders(providers);
+			// HAPI would otherwise announce itself as "HAPI FHIR Server" at its own version,
+			// which answers a question nobody asked. What an integrator needs from
+			// GET /fhir/metadata is which release of the published specification this deployment
+			// implements: the change policy tells them to check it before sending a parameter
+			// introduced in a later one, because inbound slicing is closed and a name this
+			// deployment does not know is a 400 rather than an ignored element.
+			setServerName("Digitalis fhir-hub");
+			setServerVersion(specification.version());
+			setImplementationDescription("Digitalis fhir-hub, implementing "
+					+ Profiles.CANONICAL + " release " + specification.version());
 			setDefaultResponseEncoding(EncodingEnum.JSON);
 			// Integrators debugging a payload should get readable output without asking.
 			setDefaultPrettyPrint(true);

@@ -14,7 +14,92 @@ status: draft
 version: 0.1.0
 fhirVersion: 4.0.1
 copyrightYear: 2026+
-releaseLabel: ci-build
+releaseLabel: Draft
 publisher:
   name: Digitalis
-FSHOnly: true
+  url: https://www.digitalis.nl
+contact:
+  - name: Digitalis
+    telecom:
+      - system: url
+        value: https://www.digitalis.nl
+jurisdiction: urn:iso:std:iso:3166#NL
+
+parameters:
+  # The publisher phones home with build statistics by default. A conformance build for a
+  # closed set of integrators has no reason to.
+  usage-stats-opt-out: true
+  # Every profile here derives from base R4, so inheriting R4's invariants into each snapshot
+  # table buries the handful of constraints this IG actually adds.
+  show-inherited-invariants: false
+
+# The pages under "The interface" are GENERATED from ../IMPLEMENTATION_GUIDE.md by
+# scripts/build-pages.mjs — do not edit input/pagecontent for those, edit the guide. The list
+# below is the contract between the two: the script fails if the guide's sections and these
+# filenames stop matching, so a new section in the guide cannot silently go unpublished.
+pages:
+  index.md:
+    title: Home
+  flow.md:
+    title: Global flow
+  conventions.md:
+    title: Conventions
+  authentication.md:
+    title: Authentication
+  metadata.md:
+    title: GET /fhir/metadata
+  formulary-session.md:
+    title: POST /fhir/$formulary-session
+  createrx-session.md:
+    title: POST /fhir/$createrx-session
+  session-result.md:
+    title: GET /fhir/$session-result
+  profiles.md:
+    title: Profiles
+  code-systems.md:
+    title: Code systems
+  lab-determinations.md:
+    title: Lab determinations
+  extensions.md:
+    title: Extensions
+  errors.md:
+    title: Errors
+  design-notes.md:
+    title: Behaviour to design around
+  migration.md:
+    title: Moving from the JSON API
+  limitations.md:
+    title: Current limitations
+  versioning.md:
+    title: Versioning and change policy
+  changelog.md:
+    title: Changelog
+  downloads.md:
+    title: Downloads and validation
+
+menu:
+  Home: index.html
+  Getting started:
+    Global flow: flow.html
+    Conventions: conventions.html
+    Authentication: authentication.html
+    Moving from the JSON API: migration.html
+  Operations:
+    GET /fhir/metadata: metadata.html
+    POST /fhir/$formulary-session: formulary-session.html
+    POST /fhir/$createrx-session: createrx-session.html
+    GET /fhir/$session-result: session-result.html
+  Payloads:
+    Profiles: profiles.html
+    Code systems: code-systems.html
+    Lab determinations: lab-determinations.html
+    Extensions: extensions.html
+    Errors: errors.html
+  Guidance:
+    Behaviour to design around: design-notes.html
+    Current limitations: limitations.html
+  Artifacts: artifacts.html
+  Releases:
+    Versioning and change policy: versioning.html
+    Changelog: changelog.html
+    Downloads and validation: downloads.html

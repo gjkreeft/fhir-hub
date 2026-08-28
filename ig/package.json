@@ -1,16 +1,16 @@
 {
-  "name": "ig",
+  "name": "nl.digitalis.fhirhub-ig",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Build tooling for the Digitalis fhir-hub Implementation Guide",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "bash scripts/build.sh",
+    "pages": "node scripts/build-pages.mjs",
+    "sushi": "sushi . && node scripts/stamp-version.mjs",
+    "validate-examples": "java -jar .pkg/validator_cli.jar -version 4.0.1 -ig fsh-generated/resources fsh-generated/resources/Parameters-Example*.json fsh-generated/resources/Bundle-Example*.json"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "fsh-sushi": "^3.20.1"
-  }
+  },
+  "private": true
 }

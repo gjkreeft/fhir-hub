@@ -31,6 +31,10 @@ Id: fhirhub-SessionInput
 Title: "Session input (shared base)"
 Description: "Everything the two session operations have in common. Use FhirHubFormularySessionInput or FhirHubCreateRxSessionInput rather than this directly."
 * ^status = #draft
+// Abstract because no request is ever validated against this: an operation is one of the two,
+// and reason's cardinality is the whole reason the base exists. Saying so keeps the published
+// IG from asking for an example of a profile that should not have one.
+* ^abstract = true
 * parameter ^slicing.discriminator[0].type = #value
 * parameter ^slicing.discriminator[0].path = "name"
 * parameter ^slicing.rules = #closed

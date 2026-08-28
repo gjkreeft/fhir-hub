@@ -19,6 +19,7 @@ Id: patient-gender
 Title: "Administrative gender accepted by Prescriptor"
 Description: "Prescriptor's PatientGender has three values — M, F and X — so FHIR's 'other' has no upstream equivalent."
 * ^status = #draft
+* ^experimental = false
 * $adminGender#male "Male"
 * $adminGender#female "Female"
 * $adminGender#unknown "Unknown"
@@ -92,12 +93,12 @@ Profile: FhirHubLabObservation
 Parent: Observation
 Id: fhirhub-LabObservation
 Title: "fhir-hub laboratory Observation"
-Description: "A laboratory determination, coded with the 8-position NHG Tabel 45 sleutelcode."
+Description: "A single laboratory determination or body measurement, coded in LOINC, from the closed list of determinations medication surveillance reads."
 * ^status = #draft
 * code 1..1
 * code from LabDeterminationVS (required)
 * code ^short = "One LOINC code, from the determinations medication surveillance reads"
-* code ^comment = "The list is closed and short, because the G-Standaard's list of testable measurements is: see LabDeterminationVS. A determination outside it is a 400 rather than a value that is quietly ignored — a prescriber who sent a lab result and got no signal would otherwise read that as an all-clear. Coding.display is passed on as the caption Prescriptor shows."
+* code ^comment = "The list is closed and short, because the G-Standaard's list of testable measurements is: see LabDeterminationVS. A determination outside it is a 400 rather than a value that is quietly ignored — a prescriber who sent a lab result and got no signal would otherwise read that as an all-clear. Coding.display is passed on as the caption Prescriptor shows, and is best left out: this interface supplies its own caption, while a display that is not LOINC's own term for the code is a validation error in any tooling that has LOINC loaded."
 * effective[x] only dateTime
 * effectiveDateTime 1..1
 * effectiveDateTime ^comment = "Required, because the rules test the age of the value as well as the value: 'is the ClCr older than 13 months', 'is the kaliumspiegel older than 72 hours', 'is the INR at most 24 hours old'. A value without a date cannot be evaluated."
@@ -131,6 +132,7 @@ Id: prescription-input-medication
 Title: "Prescription input medication code (PRK, HPK or ATC)"
 Description: "Codings accepted on the prescription handed to $createrx-session. An ATC may accompany the product code but cannot stand alone."
 * ^status = #draft
+* ^experimental = false
 * include codes from system urn:oid:2.16.840.1.113883.2.4.4.10
 * include codes from system urn:oid:2.16.840.1.113883.2.4.4.7
 * include codes from system http://www.whocc.no/atc

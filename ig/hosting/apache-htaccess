@@ -1,0 +1,113 @@
+# spec.digitalis.nl on Apache — the rules that make the fhir-hub canonicals dereference.
+#
+# Install as <document-root>/.htaccess, at the ROOT of the document root and **not** inside
+# /fhir/: hosting/deploy.sh runs `rsync --delete` into that directory and would remove it on the
+# next release. Everything below is scoped to /fhir/ anyway, so the rest of the host is untouched.
+#
+# It can equally go verbatim inside a <Directory> or <VirtualHost> block in the server config,
+# which is faster (no per-request .htaccess lookup) and is the better home if you have access to
+# it. As .htaccess it needs `AllowOverride FileInfo Options=None Indexes` or `AllowOverride All`
+# on the document root, and mod_rewrite, mod_headers and mod_mime loaded.
+#
+# What each section is for is the same story as hosting/nginx-fhir.conf — read the header there. One
+# thing this file CANNOT do is the part that matters most: **https has to be configured at the
+# server or vhost level**, and it is not optional. The HL7 validator's SSRF protection refuses a
+# plain-http fetch before making the request, so a guide served only over http is readable in a
+# browser and unusable by tooling. Both schemes should answer, and the rules below apply to
+# whichever one the request arrived on.
+
+DirectoryIndex index.html
+
+# ---------------------------------------------------------------------------------------------
+# Content types. The IG Publisher writes each resource as StructureDefinition-<id>.{json,xml,ttl}
+# and Apache would serve those as application/json and application/xml from its mime table.
+# ForceType is scoped by filename so only the FHIR resources are relabelled and the publisher's
+# other JSON keeps its own type.
+# ---------------------------------------------------------------------------------------------
+
+AddType application/gzip .tgz
+
+<FilesMatch "^(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)-.+\.json$">
+	ForceType application/fhir+json
+</FilesMatch>
+
+<FilesMatch "^(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)-.+\.xml$">
+	ForceType application/fhir+xml
+</FilesMatch>
+
+<FilesMatch "\.ttl$">
+	ForceType text/turtle
+</FilesMatch>
+
+# ---------------------------------------------------------------------------------------------
+# Headers. Vary: Accept is set across /fhir/ rather than only on the negotiated URLs — it costs a
+# little cache efficiency on the static assets and removes the chance of a canonical missing it,
+# which is the failure that has a cache serving a page to a validator.
+# ---------------------------------------------------------------------------------------------
+
+<IfModule mod_headers.c>
+	Header set Vary "Accept"
+	Header set Access-Control-Allow-Origin "*"
+	Header set Cache-Control "public, max-age=300"
+	# A versioned snapshot is never rewritten — deploy.sh refuses to overwrite one — so it may be
+	# cached forever. The current release is republished and may not be.
+	Header set Cache-Control "public, max-age=31536000, immutable" "expr=%{REQUEST_URI} =~ m#^/fhir/[0-9]+\.[0-9]+\.[0-9]+/#"
+</IfModule>
+
+# ---------------------------------------------------------------------------------------------
+# Canonical URL resolution, with content negotiation.
+#
+# `/fhir/StructureDefinition/fhirhub-Patient` is the identifier on the wire;
+# `fhir/StructureDefinition-fhirhub-Patient.html` is the file. In every rule below $1 is an
+# optional version prefix — `0.1.0/` or empty — so one rule covers both /fhir/… and /fhir/0.1.0/….
+#
+# ORDER IS LOAD-BEARING, and the reason is a browser's Accept header:
+#
+#   text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+#
+# It contains `application/xml`. Match that before excluding text/html and every browser is handed
+# a raw XML file for a profile it asked to read — the same trap as the CapabilityStatement
+# rendering in config/FhirConfig, one layer down. So every Accept-driven rule below requires that
+# Accept does NOT mention text/html, and HTML is the fallback rather than a rule of its own.
+# ---------------------------------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /
+
+	# 1. ?_format= wins over Accept, exactly as it does on the API itself. A correctly encoded
+	#    `application/fhir+json` arrives percent-escaped, so both spellings are accepted.
+	RewriteCond %{QUERY_STRING} (^|&)_format=(json|application(/|%2F)fhir(\+|%2B)json)(&|$) [NC]
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.json [L]
+
+	RewriteCond %{QUERY_STRING} (^|&)_format=(xml|application(/|%2F)fhir(\+|%2B)xml)(&|$) [NC]
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.xml [L]
+
+	RewriteCond %{QUERY_STRING} (^|&)_format=ttl(&|$) [NC]
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.ttl [L]
+
+	# 2. Otherwise negotiate on Accept — but never for something that asked for a page.
+	RewriteCond %{QUERY_STRING} !(^|&)_format=
+	RewriteCond %{HTTP:Accept} !text/html [NC]
+	RewriteCond %{HTTP:Accept} application/(fhir\+)?json [NC]
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.json [L]
+
+	RewriteCond %{QUERY_STRING} !(^|&)_format=
+	RewriteCond %{HTTP:Accept} !text/html [NC]
+	RewriteCond %{HTTP:Accept} application/(fhir\+)?xml [NC]
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.xml [L]
+
+	RewriteCond %{QUERY_STRING} !(^|&)_format=
+	RewriteCond %{HTTP:Accept} !text/html [NC]
+	RewriteCond %{HTTP:Accept} text/turtle [NC]
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|ImplementationGuide|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.ttl [L]
+
+	# 3. The guide's own canonical, before the fallback below can send a reader to a page the
+	#    publisher never rendered: there is no ImplementationGuide-<id>.html, because the landing
+	#    page is that rendering. Kept as its own rule rather than as a general fallback so a
+	#    mistyped canonical is still a 404 and not the landing page dressed up as a profile.
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)ImplementationGuide/[A-Za-z0-9._-]{1,64}$ fhir/$1index.html [L]
+
+	# 4. Everything else that asked for a canonical gets the page.
+	RewriteRule ^fhir/(([0-9]+\.[0-9]+\.[0-9]+/)?)(StructureDefinition|ValueSet|CodeSystem|ConceptMap|CapabilityStatement|OperationDefinition|SearchParameter)/([A-Za-z0-9._-]{1,64})$ fhir/$1$3-$4.html [L]
+</IfModule>
