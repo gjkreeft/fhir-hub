@@ -1,5 +1,6 @@
 package nl.digitalis.fhirhub.fhir;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -21,11 +22,11 @@ import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Quantity;
 import org.hl7.fhir.r4.model.StringType;
-import org.hl7.fhir.r4.model.Type;
 import org.hl7.fhir.r4.model.UrlType;
 import org.springframework.stereotype.Component;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import nl.digitalis.fhirhub.fhir.LabDeterminations.Determination;
 import nl.digitalis.fhirhub.model.CodedItem;
 import nl.digitalis.fhirhub.model.DrugCode;
 import nl.digitalis.fhirhub.model.ExistingPrescription;
@@ -60,8 +61,11 @@ public class SessionParametersMapper {
 
 	private final CodeSystemRegistry codeSystems;
 
-	public SessionParametersMapper(CodeSystemRegistry codeSystems) {
+	private final LabDeterminations determinations;
+
+	public SessionParametersMapper(CodeSystemRegistry codeSystems, LabDeterminations determinations) {
 		this.codeSystems = codeSystems;
+		this.determinations = determinations;
 	}
 
 	public SessionRequest toSessionRequest(SessionInputs inputs) {
@@ -343,42 +347,52 @@ public class SessionParametersMapper {
 	}
 
 	/**
-	 * Maps lab Observations onto NHG Tabel 45 determinations.
+	 * Maps lab Observations onto the determinations medication surveillance reads.
 	 *
-	 * <p>The code is the 8-position sleutelcode, which is split back into memo, materiaal and
-	 * bijzonderheid because that is how the upstream dialect transmits it. They are not three
-	 * independent facts — the combination is the identity of the determination.
+	 * <p>A host sends a LOINC code and the upstream tests that same code, so nothing is translated;
+	 * {@link LabDeterminations} says which codes a rule can read and in which unit. A code outside
+	 * that list is refused rather than forwarded, because forwarding it would leave the prescriber
+	 * believing a value had been weighed when nothing read it — the same false all-clear an
+	 * unresolvable drug code is refused for.
 	 */
 	private List<LabResult> laboratoryData(List<Observation> observations) {
 		List<LabResult> results = new ArrayList<>();
 		for (Observation observation : observations) {
-			String key = firstCodeForSystem(observation.getCode(), Systems.NHG_TABEL_45);
-			if (key == null) {
+			Coding coding = firstCodingForSystem(observation.getCode(), Systems.LOINC);
+			if (coding == null) {
 				throw new InvalidRequestException(
-						"Observation.code requires a coding in " + Systems.NHG_TABEL_45
-								+ " (NHG Tabel 45 sleutelcode)");
+						"Observation.code requires a coding in " + Systems.LOINC
+								+ "; the determinations medication surveillance reads are "
+								+ determinations.acceptedCodes());
 			}
 
-			String padded = "%-8s".formatted(key);
+			Determination determination = determinations.forLoinc(coding.getCode());
+			if (determination == null) {
+				throw new InvalidRequestException(
+						"LOINC code '" + coding.getCode() + "' is not a determination medication"
+								+ " surveillance reads, so sending it would suggest it had been"
+								+ " weighed. Accepted: " + determinations.acceptedCodes());
+			}
+
 			results.add(new LabResult(
-					padded.substring(0, 4).trim(),
-					padded.substring(4, 6).trim(),
-					padded.substring(6, 8).trim(),
+					determination.loinc(),
+					coding.hasDisplay() ? coding.getDisplay() : determination.display(),
+					determination.unit(),
 					effectiveDate(observation),
-					observationValue(observation)));
+					valueIn(observation, determination)));
 		}
 
 		return results;
 	}
 
-	private String firstCodeForSystem(CodeableConcept concept, String system) {
+	private Coding firstCodingForSystem(CodeableConcept concept, String system) {
 		if (concept == null) {
 			return null;
 		}
 
 		for (Coding coding : concept.getCoding()) {
 			if (system.equals(coding.getSystem())) {
-				return coding.getCode();
+				return coding;
 			}
 		}
 
@@ -395,22 +409,30 @@ public class SessionParametersMapper {
 	}
 
 	/**
-	 * Reads the result value as the plain string the upstream expects.
+	 * The result value, in the unit the rules evaluate in.
 	 *
-	 * <p>Both {@code valueQuantity} and {@code valueString} are accepted. The upstream carries
-	 * no unit, so a Quantity's unit is dropped here — losing it is unavoidable, but accepting
-	 * the richer type means integrators do not have to downgrade data they already hold.
+	 * <p>The upstream carries no unit, so the number has to be right on arrival: a kalium in mg/dL
+	 * rather than mmol/L is a different answer, not a rounded one, and nothing downstream could
+	 * notice. Hence a {@code Quantity} with a UCUM code the determination accepts, converted where
+	 * the conversion is exact, and a refusal otherwise.
 	 */
-	private String observationValue(Observation observation) {
-		Type value = observation.getValue();
-		if (value instanceof Quantity quantity && quantity.hasValue()) {
-			return quantity.getValue().stripTrailingZeros().toPlainString();
-		}
-		if (value != null && value.isPrimitive()) {
-			return value.primitiveValue();
+	private String valueIn(Observation observation, Determination determination) {
+		if (!(observation.getValue() instanceof Quantity quantity) || !quantity.hasValue()) {
+			throw new InvalidRequestException(
+					"Observation.valueQuantity is required for " + determination.loinc() + " ("
+							+ determination.display() + "), in " + determination.acceptedUnits());
 		}
 
-		throw new InvalidRequestException(
-				"Observation.value must be a Quantity or a primitive type");
+		String unit = quantity.hasCode() ? quantity.getCode() : quantity.getUnit();
+		BigDecimal converted = determination.toUpstreamUnit(unit, quantity.getValue());
+		if (converted == null) {
+			throw new InvalidRequestException(
+					"Observation.valueQuantity for " + determination.loinc() + " ("
+							+ determination.display() + ") must be in " + determination.acceptedUnits()
+							+ " as a UCUM code, not '" + unit + "': the upstream carries no unit, so"
+							+ " the value is evaluated as " + determination.unit());
+		}
+
+		return converted.stripTrailingZeros().toPlainString();
 	}
 }

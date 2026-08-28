@@ -9,7 +9,7 @@ Alias: $icpc      = urn:oid:2.16.840.1.113883.2.4.4.31.1
 Alias: $prk       = urn:oid:2.16.840.1.113883.2.4.4.10
 Alias: $hpk       = urn:oid:2.16.840.1.113883.2.4.4.7
 Alias: $gpk       = urn:oid:2.16.840.1.113883.2.4.4.1
-Alias: $nhg45     = urn:oid:2.16.840.1.113883.2.4.4.30.45
+Alias: $loinc     = http://loinc.org
 Alias: $basiseenheid = urn:oid:2.16.840.1.113883.2.4.4.1.900.2
 Alias: $atc       = http://www.whocc.no/atc
 Alias: $ssk       = urn:oid:2.16.840.1.113883.2.4.4.1.725
@@ -101,12 +101,32 @@ Description: "Reason for encounter. The code shape is additionally constrained b
 * ^status = #draft
 * include codes from system $icpc
 
+// The determinations medication surveillance actually reads, and nothing else.
+//
+// The list is closed, and it is short because the G-Standaard's own list is: BST685T rows with
+// THMFBP = 2000 are the complete set of patient measurements an MFB rule can test — twelve of
+// them, four used by current rules — plus weight and height, which dose checking reads. A lab
+// value outside this set is not merely unused: accepting it would tell a prescriber their lab
+// data had been weighed when nothing looked at it.
+//
+// Enumerated rather than "include codes from system http://loinc.org", so the binding says which
+// codes are meant. fhir/LabDeterminations.java carries the same list with the NHG Tabel 45 triple
+// each code is forwarded as and the units it accepts; LabDeterminationsTest pins the two together.
 ValueSet: LabDeterminationVS
-Id: nhg-tabel-45
-Title: "NHG Tabel 45 Diagnostische bepalingen"
-Description: "The 8-position sleutelcode: memo (1-4), materiaal (5-6), bijzonderheid (7-8). One coding, not three — the combination is the identity of the determination."
+Id: lab-determination
+Title: "Laboratory determinations medication surveillance reads"
+Description: "The LOINC codes accepted on Parameters.parameter:observation. These are the codes the G-Standaard itself attaches to its MFB parameters (BST684T rows with MFBEXSRT = 4, 'LOINC / Nederlandse Labcodeset'), so the rules engine can test what a host sends: eGFR, kalium, INR, sirolimus, natrium and lithium, plus weight and height for dose checking. One eGFR code only — Dutch laboratories report CKD-EPI, so the MDRD and cystatin C codes the G-Standaard also lists are not accepted here."
 * ^status = #draft
-* include codes from system $nhg45
+* $loinc#62238-1 "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI)/1.73 sq M"
+* $loinc#2823-3 "Potassium [Moles/volume] in Serum or Plasma"
+* $loinc#6298-4 "Potassium [Moles/volume] in Blood"
+* $loinc#6301-6 "INR in Platelet poor plasma by Coagulation assay"
+* $loinc#34714-6 "INR in Blood by Coagulation assay"
+* $loinc#29247-4 "Sirolimus [Mass/volume] in Blood"
+* $loinc#2951-2 "Sodium [Moles/volume] in Serum or Plasma"
+* $loinc#14334-7 "Lithium [Moles/volume] in Serum or Plasma"
+* $loinc#29463-7 "Body weight"
+* $loinc#8302-2 "Body height"
 
 ValueSet: OpiumActVS
 Id: opium-act-classification

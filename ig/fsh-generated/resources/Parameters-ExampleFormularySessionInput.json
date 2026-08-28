@@ -147,19 +147,23 @@
             "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
           ]
         },
+        "valueQuantity": {
+          "system": "http://unitsofmeasure.org",
+          "value": 65,
+          "unit": "mL/min/1.73m2",
+          "code": "mL/min/{1.73_m2}"
+        },
         "status": "final",
         "code": {
           "coding": [
             {
-              "system": "urn:oid:2.16.840.1.113883.2.4.4.30.45",
-              "code": "ALDOB"
+              "system": "http://loinc.org",
+              "code": "62238-1",
+              "display": "eGFR volgens CKD-EPI"
             }
           ]
         },
-        "effectiveDateTime": "2024-07-04",
-        "valueQuantity": {
-          "value": 10
-        }
+        "effectiveDateTime": "2024-07-04"
       }
     }
   ]

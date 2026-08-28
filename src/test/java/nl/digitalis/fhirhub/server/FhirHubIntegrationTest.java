@@ -374,11 +374,12 @@ class FhirHubIntegrationTest {
 		patient.setGender(AdministrativeGender.FEMALE);
 		patient.setBirthDateElement(new org.hl7.fhir.r4.model.DateType("1980-01-01"));
 
-		Observation aldosterone = new Observation();
-		aldosterone.setStatus(Observation.ObservationStatus.FINAL);
-		aldosterone.getCode().addCoding(new Coding().setSystem(Systems.NHG_TABEL_45).setCode("ALDOB"));
-		aldosterone.setValue(new Quantity().setValue(10));
-		aldosterone.setEffective(new DateTimeType("2024-07-04"));
+		Observation klaring = new Observation();
+		klaring.setStatus(Observation.ObservationStatus.FINAL);
+		klaring.getCode().addCoding(new Coding().setSystem(Systems.LOINC).setCode("62238-1"));
+		klaring.setValue(new Quantity().setValue(65).setSystem(Systems.UCUM)
+				.setCode("mL/min/{1.73_m2}").setUnit("mL/min/1.73m2"));
+		klaring.setEffective(new DateTimeType("2024-07-04"));
 
 		MedicationStatement current = new MedicationStatement();
 		current.setStatus(MedicationStatement.MedicationStatementStatus.ACTIVE);
@@ -394,7 +395,7 @@ class FhirHubIntegrationTest {
 						new Coding().setSystem(Systems.ICPC_1_NL).setCode("A01")));
 		parameters.addParameter().setName(SessionParametersMapper.PARAM_END_SESSION_URL)
 				.setValue(new UrlType("https://someurl.example/done"));
-		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION).setResource(aldosterone);
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION).setResource(klaring);
 
 		parameters.addParameter().setName(SessionParametersMapper.PARAM_XIS_ID)
 				.setValue(new org.hl7.fhir.r4.model.StringType("xis-001"));

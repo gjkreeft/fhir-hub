@@ -64,7 +64,6 @@ class IgCanonicalsTest {
 				.contains(Systems.PRK)
 				.contains(Systems.HPK)
 				.contains(Systems.GPK)
-				.contains(Systems.NHG_TABEL_45)
 				.contains(Systems.ATC);
 	}
 

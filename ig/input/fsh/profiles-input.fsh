@@ -96,13 +96,18 @@ Description: "A laboratory determination, coded with the 8-position NHG Tabel 45
 * ^status = #draft
 * code 1..1
 * code from LabDeterminationVS (required)
-* code ^short = "One NHG Tabel 45 sleutelcode"
-* code ^comment = "Send the composite code as ONE coding: memo (positions 1-4), materiaal (5-6) and bijzonderheid (7-8) belong together — the combination is the identity of the determination. Do not split them across three codings or three resources. Codes shorter than 8 positions are padded. Unlike the other systems, the short name is not accepted here."
+* code ^short = "One LOINC code, from the determinations medication surveillance reads"
+* code ^comment = "The list is closed and short, because the G-Standaard's list of testable measurements is: see LabDeterminationVS. A determination outside it is a 400 rather than a value that is quietly ignored — a prescriber who sent a lab result and got no signal would otherwise read that as an all-clear. Coding.display is passed on as the caption Prescriptor shows."
 * effective[x] only dateTime
 * effectiveDateTime 1..1
-* value[x] only Quantity or string or boolean or integer or time or dateTime
+* effectiveDateTime ^comment = "Required, because the rules test the age of the value as well as the value: 'is the ClCr older than 13 months', 'is the kaliumspiegel older than 72 hours', 'is the INR at most 24 hours old'. A value without a date cannot be evaluated."
+* value[x] only Quantity
 * value[x] 1..1
-* value[x] ^comment = "A Quantity's unit is ignored — the upstream carries no unit — so send the value in the unit the determination is defined in rather than converting. CodeableConcept, Range, Ratio, SampledData and Period are excluded because the mapper reads only a Quantity or a primitive."
+* valueQuantity.value 1..1
+* valueQuantity.system 1..1
+* valueQuantity.system = "http://unitsofmeasure.org" (exactly)
+* valueQuantity.code 1..1
+* value[x] ^comment = "A UCUM code is required and is checked against the determination: the upstream carries no unit, so the number has to arrive in the unit the rules evaluate in. Kalium in mg/dL rather than mmol/L is a different answer, not a rounded one, and nothing downstream could notice. See fhir/LabDeterminations.java for the unit each determination accepts."
 * status ^comment = "Mandatory in base R4 and not read by fhir-hub."
 
 Profile: FhirHubPrescriptionInput

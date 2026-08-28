@@ -25,6 +25,7 @@ every endpoint with its input and output specification.
 - [`POST /fhir/$formulary-session`](#post-fhirformulary-session)
 - [`POST /fhir/$createrx-session`](#post-fhircreaterx-session)
 - [`GET /fhir/$session-result`](#get-fhirsession-result)
+- [Lab determinations](#lab-determinations)
 - [Profiles](#profiles)
 - [Code systems](#code-systems)
 - [Extensions](#extensions)
@@ -152,7 +153,7 @@ names the element.
 | `allergyIntolerance` | 0..* | `AllergyIntolerance` | `code.coding` in SSK, SNK or OGGrp |
 | `condition` | 0..* | `Condition` | `code.coding` in CICode or ICPC |
 | `medicationStatement` | 0..* | `MedicationStatement` | `medicationCodeableConcept` in PRK or HPK |
-| `observation` | 0..* | `Observation` | NHG Tabel 45 determination — see below |
+| `observation` | 0..* | `Observation` | A LOINC-coded lab determination — see [Lab determinations](#lab-determinations) |
 | `prescription` | 0..0 | — | Rejected here with a 400; `$createrx-session` only |
 
 **`patient`** — `gender` must be `male`, `female` or `unknown`. Send the sex when you know it:
@@ -189,16 +190,10 @@ pass a drug you cannot code — there is no free-text fallback.
 order — every entry is resolved to a PRK + GPK pair before the session opens, so the level you use
 per entry is your choice and does not affect the others.
 
-**`observation`** — a lab result. `code.coding` must carry the 8-position NHG Tabel 45 sleutelcode
-under `urn:oid:2.16.840.1.113883.2.4.4.30.45` (unlike the other systems, a short name is *not*
-accepted here). Send the composite code as **one** coding: memo (positions 1–4), materiaal (5–6) and
-bijzonderheid (7–8) belong together — do not split them across three codings or three resources.
-Codes shorter than 8 positions are padded for you. `effectiveDateTime` is required.
-
-The value is required, and is one of `valueQuantity`, `valueString`, `valueBoolean`,
-`valueInteger`, `valueTime` or `valueDateTime`. `CodeableConcept`, `Range`, `Ratio`, `SampledData`
-and `Period` are rejected, because nothing reads them. Any `unit` on a Quantity is **ignored**, so
-send the value in the unit the determination is defined in rather than converting.
+**`observation`** — a laboratory determination or a body measurement, coded in **LOINC**
+(`http://loinc.org`), with `effectiveDateTime` and a `valueQuantity` in the unit below. Only the
+determinations medication surveillance reads are accepted; see
+[Lab determinations](#lab-determinations) for the list, the units and why it is closed.
 
 ```jsonc
 POST /fhir/$formulary-session
@@ -246,9 +241,12 @@ Authorization: Basic ...
         "resourceType": "Observation",
         "status": "final",
         "code": { "coding": [ {
-          "system": "urn:oid:2.16.840.1.113883.2.4.4.30.45", "code": "ALDOB" } ] },
+          "system": "http://loinc.org", "code": "62238-1",
+          "display": "eGFR volgens CKD-EPI" } ] },
         "effectiveDateTime": "2024-07-04",
-        "valueQuantity": { "value": 10 } } }
+        "valueQuantity": { "value": 65, "unit": "mL/min/1.73m2",
+                           "system": "http://unitsofmeasure.org",
+                           "code": "mL/min/{1.73_m2}" } } }
   ]
 }
 ```
@@ -468,6 +466,54 @@ switch on which element is populated rather than inspecting the text yourself.
 }
 ```
 
+## Lab determinations
+
+Lab values are coded in **LOINC** and in nothing else, and the accepted codes are a closed list.
+Both halves come from the G-Standaard rather than from us: it publishes, per medisch-farmaceutische
+beslisregel parameter, the LOINC codes that count as that parameter, and the rules engine tests the
+code you send — nothing is translated on the way through.
+
+| Determination | `code` (LOINC) | `valueQuantity.code` | Read by |
+| --- | --- | --- | --- |
+| eGFR volgens CKD-EPI | `62238-1` | `mL/min/{1.73_m2}` | 666 current rules |
+| Kalium, serum of plasma | `2823-3` | `mmol/L` | 4 current rules |
+| Kalium, bloed | `6298-4` | `mmol/L` | idem |
+| INR, trombocytenarm plasma | `6301-6` | `{INR}` or `1` | 3 current rules |
+| INR, bloed | `34714-6` | `{INR}` or `1` | idem |
+| Sirolimus Cmin | `29247-4` | `ug/L` | 1 current rule |
+| Natrium, serum of plasma | `2951-2` | `mmol/L` | no current rule |
+| Lithiumspiegel | `14334-7` | `mmol/L` | no current rule |
+| Gewicht | `29463-7` | `kg` | dose checking |
+| Lengte | `8302-2` | `cm` or `m` | dose checking |
+
+**A determination outside the list is a 400, not a silent no-op.** The rules can test twelve patient
+measurements in total and current rules use four; anything else a host holds changes no decision. A
+prescriber who supplied a lab result and saw no warning would read that as an all-clear, so the
+request is refused instead — the same reason an unresolvable drug code fails the whole session.
+
+**One eGFR code.** Dutch laboratories report CKD-EPI, so `62238-1` is the code to send. The
+G-Standaard also lists `77147-7` (MDRD) and `50210-4` (cystatin C) for the same parameter and this
+interface does not accept either; if your source reports one of them, raise it with Digitalis rather
+than re-labelling the value, because the formulas do not give the same number.
+
+**The unit is checked against the code.** `valueQuantity` must carry `system:
+"http://unitsofmeasure.org"` and the `code` in the table; anything else is a 400. The number is
+evaluated in the unit the rule was written in, so a kalium in mg/dL rather than mmol/L is a
+different answer rather than a rounded one, and nothing downstream could notice. Note that an eGFR
+must arrive as `mL/min/{1.73_m2}`, its own unit, rather than as `mL/min` — the G-Standaard compares
+it against ml/min thresholds unchanged, and the payload should at least be unambiguous about which
+quantity it carries. Where a conversion is exact it is done for you: a length in `m` is forwarded in
+centimetres.
+
+**Dates matter as much as values.** The rules test both — *is the ClCr older than 13 months*, *is
+the kaliumspiegel older than 72 hours*, *is de INR max. 24 uur oud* — so `effectiveDateTime` is
+required, and it must be when the sample was taken rather than when the report was released. A
+value older than the rule's window counts as absent.
+
+**Sending several.** One determination per `observation` parameter, repeated as needed. `component`
+is not read — resolve a multi-component result to one number first. `interpretation`,
+`referenceRange`, `method` and `note` are ignored: this is an input to a decision, not a lab report.
+
 ## Profiles
 
 Every payload in this document has a `StructureDefinition` you can validate against. They are
@@ -533,7 +579,7 @@ Emitted on output and accepted on input:
 | GPK (generiek product) | `urn:oid:2.16.840.1.113883.2.4.4.1` |
 | G-Standaard basiseenheid | `urn:oid:2.16.840.1.113883.2.4.4.1.900.2` |
 | ICPC-1 NL | `urn:oid:2.16.840.1.113883.2.4.4.31.1` |
-| NHG Tabel 45 (diagnostische bepalingen) | `urn:oid:2.16.840.1.113883.2.4.4.30.45` |
+| LOINC (lab determinations, see [Lab determinations](#lab-determinations)) | `http://loinc.org` |
 | ATC | `http://www.whocc.no/atc` |
 | UCUM | `http://unitsofmeasure.org` |
 
@@ -652,6 +698,8 @@ type:
 **This interface's own rules**, for the things a profile cannot express:
 
 - `G-Standaard has no product for PRK 404040, so it cannot take part in medication surveillance`
+- `LOINC code '718-7' is not a determination medication surveillance reads, so sending it would suggest it had been weighed. Accepted: [62238-1, 2823-3, …]`
+- `Observation.valueQuantity for 2823-3 (Kalium (serum of plasma)) must be in [mmol/L] as a UCUM code, not 'mg/dL': the upstream carries no unit, so the value is evaluated as mmol/L`
 - `PRK code '18996a' is not numeric`
 - `The 'session' parameter is required` — on `$session-result`
 
@@ -735,9 +783,10 @@ not in the running service.
   because the publishing tool adds it; a live payload does not.
 - **nl-core is not derived from**, so do not expect these resources to satisfy nl-core. Three of
   the five are blocked on Nictiz rather than on effort: `nl-core-MedicationContraIndication`
-  profiles `Flag` rather than `Condition`, `nl-core-LaboratoryTestResult` does not admit NHG
-  Tabel 45 codes (Nictiz BITS **ZIB-639**), and `nl-core-MedicationUse2` is not published in the
-  nl-core package. Ask Digitalis before building anything that depends on nl-core conformance.
+  profiles `Flag` rather than `Condition`, `nl-core-LaboratoryTestResult` requires an
+  `Observation.category` this interface neither sends nor reads, and `nl-core-MedicationUse2` is
+  not published in the nl-core package. Ask Digitalis before building anything that depends on
+  nl-core conformance.
 - **The artifacts are `draft`, at version `0.1.0`,** and no versioning policy is agreed yet: there
   is no path versioning and no published change policy. Agree with Digitalis how you want to be
   told about a change before you go live.

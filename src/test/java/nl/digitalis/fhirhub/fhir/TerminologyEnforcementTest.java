@@ -80,6 +80,47 @@ class TerminologyEnforcementTest {
 		assertThat(codeSystems.tokenFor(CodeSystemTokens.SNK)).isNull();
 	}
 
+	/**
+	 * The lab side has the same shape as the G-Standaard side: one closed list, enforced. Note that
+	 * this binding <em>does</em> catch a wrong code even though LOINC is not distributed with the
+	 * profiles — the value set enumerates its concepts, so membership is decidable without the code
+	 * system. That is the same mechanism the G-Standaard bindings cannot use, because those name a
+	 * whole licensed table rather than a dozen codes.
+	 */
+	@Test
+	void aLabDeterminationOutsideTheAcceptedListIsRejected() {
+		assertThat(errorsIn(sessionWithLabDetermination("62238-1")))
+				.as("the nierfunctie, which 666 current MFB rules read")
+				.isEmpty();
+
+		assertThat(errorsIn(sessionWithLabDetermination("718-7")))
+				.as("hemoglobine: a real LOINC code that no rule reads")
+				.isNotEmpty();
+	}
+
+	private Parameters sessionWithLabDetermination(String loinc) {
+		Parameters parameters = sessionWithAllergy(Systems.G_STANDAARD_SNK, "10499");
+		org.hl7.fhir.r4.model.Observation lab = new org.hl7.fhir.r4.model.Observation();
+		lab.setStatus(org.hl7.fhir.r4.model.Observation.ObservationStatus.FINAL);
+		lab.getCode().addCoding(new Coding().setSystem(Systems.LOINC).setCode(loinc));
+		lab.setValue(new org.hl7.fhir.r4.model.Quantity().setValue(32)
+				.setSystem(Systems.UCUM).setCode("mL/min/{1.73_m2}").setUnit("mL/min/1.73m2"));
+		lab.setEffective(new org.hl7.fhir.r4.model.DateTimeType("2026-08-20"));
+		parameters.addParameter().setName("observation").setResource(lab);
+
+		return parameters;
+	}
+
+	private List<String> errorsIn(Parameters body) {
+		return validator.validateWithResult(body,
+				new ValidationOptions().addProfile(Profiles.FORMULARY_SESSION_INPUT))
+				.getMessages().stream()
+				.filter(message -> message.getSeverity() == ResultSeverityEnum.ERROR
+						|| message.getSeverity() == ResultSeverityEnum.FATAL)
+				.map(message -> message.getLocationString() + ": " + message.getMessage())
+				.toList();
+	}
+
 	private List<String> errorsFor(String system, String code) {
 		return validator.validateWithResult(sessionWithAllergy(system, code),
 				new ValidationOptions().addProfile(Profiles.FORMULARY_SESSION_INPUT))

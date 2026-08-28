@@ -4,8 +4,8 @@
     "fshName": "ExampleResultBundle",
     "fshType": "Instance",
     "fshFile": "examples.fsh",
-    "startLine": 133,
-    "endLine": 146
+    "startLine": 139,
+    "endLine": 152
   },
   {
     "outputFile": "CodeSystem-gstandaard-bijzonder-kenmerk.json",
@@ -20,24 +20,24 @@
     "fshName": "ExampleCreateRxSessionInput",
     "fshType": "Instance",
     "fshFile": "examples.fsh",
-    "startLine": 179,
-    "endLine": 195
+    "startLine": 185,
+    "endLine": 201
   },
   {
     "outputFile": "Parameters-ExampleFormularySessionInput.json",
     "fshName": "ExampleFormularySessionInput",
     "fshType": "Instance",
     "fshFile": "examples.fsh",
-    "startLine": 51,
-    "endLine": 74
+    "startLine": 57,
+    "endLine": 80
   },
   {
     "outputFile": "Parameters-ExampleSessionOutput.json",
     "fshName": "ExampleSessionOutput",
     "fshType": "Instance",
     "fshFile": "examples.fsh",
-    "startLine": 76,
-    "endLine": 84
+    "startLine": 82,
+    "endLine": 90
   },
   {
     "outputFile": "StructureDefinition-ext-Dosage.CodedDirections.json",
@@ -101,7 +101,7 @@
     "fshType": "Profile",
     "fshFile": "profiles-input.fsh",
     "startLine": 91,
-    "endLine": 106
+    "endLine": 111
   },
   {
     "outputFile": "StructureDefinition-fhirhub-MedicationStatement.json",
@@ -132,8 +132,8 @@
     "fshName": "FhirHubPrescriptionInput",
     "fshType": "Profile",
     "fshFile": "profiles-input.fsh",
-    "startLine": 108,
-    "endLine": 122
+    "startLine": 113,
+    "endLine": 127
   },
   {
     "outputFile": "StructureDefinition-fhirhub-ResultBundle.json",
@@ -192,6 +192,14 @@
     "endLine": 102
   },
   {
+    "outputFile": "ValueSet-lab-determination.json",
+    "fshName": "LabDeterminationVS",
+    "fshType": "ValueSet",
+    "fshFile": "terminology.fsh",
+    "startLine": 115,
+    "endLine": 129
+  },
+  {
     "outputFile": "ValueSet-medication-code.json",
     "fshName": "MedicationCodeVS",
     "fshType": "ValueSet",
@@ -200,20 +208,12 @@
     "endLine": 85
   },
   {
-    "outputFile": "ValueSet-nhg-tabel-45.json",
-    "fshName": "LabDeterminationVS",
-    "fshType": "ValueSet",
-    "fshFile": "terminology.fsh",
-    "startLine": 104,
-    "endLine": 109
-  },
-  {
     "outputFile": "ValueSet-opium-act-classification.json",
     "fshName": "OpiumActVS",
     "fshType": "ValueSet",
     "fshFile": "terminology.fsh",
-    "startLine": 111,
-    "endLine": 116
+    "startLine": 131,
+    "endLine": 136
   },
   {
     "outputFile": "ValueSet-patient-gender.json",
@@ -228,7 +228,7 @@
     "fshName": "PrescriptionInputMedicationVS",
     "fshType": "ValueSet",
     "fshFile": "profiles-input.fsh",
-    "startLine": 124,
-    "endLine": 131
+    "startLine": 129,
+    "endLine": 136
   }
 ]

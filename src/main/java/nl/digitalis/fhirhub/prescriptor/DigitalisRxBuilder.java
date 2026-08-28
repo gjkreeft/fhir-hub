@@ -77,15 +77,18 @@ final class DigitalisRxBuilder {
 					}
 				});
 
+				// Lab data as LOINC, which is what the host sent and what the MFB datatests test:
+				// the generator in g-standaard/apps/mfb builds a DatatestLOINC keyed on this
+				// number. The unit is carried too — Prescriptor_Units reads it to convert weight
+				// and height — though the value is already in the unit the rules evaluate in.
 				p.element("laboratoryData", l -> {
 					for (LabResult lab : patient.laboratoryData()) {
-						l.empty("NHG")
+						l.empty("LOINC")
+								.attribute("num", lab.loinc())
+								.attribute("caption", lab.caption())
 								.attribute("date", lab.date().format(ISO_DATE))
-								.attribute("memo", lab.memo())
-								.attribute("caption", lab.memo())
-								.attribute("mat", lab.material())
-								.attribute("bijz", lab.peculiarity())
-								.attribute("value", lab.value());
+								.attribute("value", lab.value())
+								.attribute("unit", lab.unit());
 					}
 				});
 

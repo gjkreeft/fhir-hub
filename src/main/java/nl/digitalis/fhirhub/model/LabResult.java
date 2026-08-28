@@ -3,27 +3,25 @@ package nl.digitalis.fhirhub.model;
 import java.time.LocalDate;
 
 /**
- * One NHG Tabel 45 laboratory determination.
+ * One laboratory determination on its way upstream.
  *
- * <p>{@code memo}, {@code material} and {@code peculiarity} are not three independent fields:
- * together they form the 8-position NHG Tabel 45 sleutelcode (memo 1-4, materiaal 5-6,
- * bijzonderheid 7-8) that uniquely and permanently identifies a determination. They are kept
- * apart here only because the upstream XML dialect transmits them apart.
+ * <p>The LOINC code travels all the way through: the upstream carries lab data as
+ * {@code <LOINC num="…">} and the rules engine tests it by that number, so nothing here is
+ * translated into another terminology. {@code caption} is display-only, and {@code value} is in
+ * {@code unit} because the rules are written in one — see {@code fhir/LabDeterminations}.
  */
 public record LabResult(
-		String memo,
-		String material,
-		String peculiarity,
+		String loinc,
+		String caption,
+		String unit,
 		LocalDate date,
 		String value) {
 
-	/**
-	 * The composite sleutelcode, space padded to the fixed 8 positions the NHG table defines.
-	 */
-	public String keyCode() {
-		return "%-4s%-2s%-2s".formatted(
-				memo == null ? "" : memo,
-				material == null ? "" : material,
-				peculiarity == null ? "" : peculiarity);
+	public LabResult {
+		// Coding.display when the host sent one; the determination's own name otherwise, so the
+		// prescriber sees something better than a code.
+		if (caption == null || caption.isBlank()) {
+			caption = loinc;
+		}
 	}
 }

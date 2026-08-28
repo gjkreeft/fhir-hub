@@ -1,0 +1,139 @@
+package nl.digitalis.fhirhub.fhir;
+
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Component;
+
+/**
+ * The laboratory determinations medication surveillance reads, in LOINC.
+ *
+ * <h2>The list is the G-Standaard's, not ours</h2>
+ * {@code BST684T} publishes, per MFB parameter, the external codes that count as that parameter:
+ * rows with {@code MFBEXSRT = 4} are "LOINC / Nederlandse Labcodeset". Those rows are this list.
+ * A code outside them is not merely unusual — the rules engine has nothing to match it against, so
+ * a value sent under it would tell a prescriber their lab data had been weighed when nothing read
+ * it. Which measurements can be tested at all is equally fixed: {@code BST685T} rows with
+ * {@code THMFBP = 2000}, twelve of them, of which current rules use four.
+ *
+ * <h2>LOINC travels all the way through</h2>
+ * The upstream takes lab data as either {@code <LOINC num="…">} or {@code <NHG memo mat bijz>}, and
+ * the MFB datatest generator builds a {@code DatatestLOINC} keyed on the LOINC number for exactly
+ * the codes listed here. So nothing is translated: the code a host sends is the code the engine
+ * tests. That is why there is no NHG Tabel 45 mapping in this codebase — it would add a translation
+ * step, a table to maintain, and a class of determinations that cannot be forwarded because no NHG
+ * code exists for them.
+ *
+ * <h2>Units are enforced, and each code carries its own</h2>
+ * The number is evaluated in the unit the rule was written in, so it has to arrive in that unit: a
+ * kalium in mg/dL rather than mmol/L is a different answer, not a rounded one, and nothing
+ * downstream could notice. Each determination therefore lists the UCUM codes it accepts, with the
+ * factor to the unit the upstream wants, and refuses anything else. An eGFR must arrive as
+ * {@code mL/min/{1.73_m2}} — its own unit — rather than as {@code mL/min}, so the payload cannot be
+ * ambiguous about which quantity it carries.
+ *
+ * <h2>What is deliberately not here</h2>
+ * The G-Standaard also lists {@code 77147-7} (MDRD) and {@code 50210-4} (cystatin C) for the
+ * klaring; Dutch laboratories report CKD-EPI, so only {@code 62238-1} is accepted. Adding either is
+ * one line. Note also that the G-Standaard compares every code under parameter 1 against the same
+ * ml/min thresholds even though the eGFR codes are normalised per 1.73 m2 — that is its decision,
+ * not one this interface can make, and it is the reason the unit is pinned per code here.
+ */
+@Component
+public class LabDeterminations {
+
+	/**
+	 * One determination: the LOINC code a host sends, the MFB parameter it feeds, and the units the
+	 * value may arrive in.
+	 *
+	 * @param mfbParameter {@code BST685T.MFBPANR}, or null for the two the dose check reads rather
+	 *                     than the rules
+	 * @param factorByUnit UCUM code to the factor for {@link #unit}, so {@code m} to {@code cm} is 100
+	 */
+	public record Determination(
+			String loinc,
+			Integer mfbParameter,
+			String display,
+			String unit,
+			Map<String, BigDecimal> factorByUnit) {
+
+		public Determination {
+			factorByUnit = Map.copyOf(factorByUnit);
+		}
+
+		/** The value in {@link #unit}, or null when the unit is not one this determination accepts. */
+		public BigDecimal toUpstreamUnit(String ucumCode, BigDecimal value) {
+			BigDecimal factor = ucumCode == null ? null : factorByUnit.get(ucumCode);
+
+			return factor == null ? null : value.multiply(factor);
+		}
+
+		/** The UCUM codes a caller may use, for the guide and for a rejection message. */
+		public List<String> acceptedUnits() {
+			return factorByUnit.keySet().stream().sorted().toList();
+		}
+	}
+
+	private static final BigDecimal AS_IS = BigDecimal.ONE;
+
+	private static final Map<String, BigDecimal> CONCENTRATION = Map.of("mmol/L", AS_IS);
+
+	/** INR is a ratio. UCUM writes a dimensionless quantity as 1, and {INR} is the annotated form. */
+	private static final Map<String, BigDecimal> RATIO = Map.of("{INR}", AS_IS, "1", AS_IS);
+
+	private final Map<String, Determination> byLoinc = new LinkedHashMap<>();
+
+	public LabDeterminations() {
+		// Nierfunctie — MFB parameter 1, tested by 666 current rules, which is what medication
+		// surveillance turns on. The unit is the code's own: an eGFR is normalised per 1.73 m2.
+		add("62238-1", 1, "eGFR volgens CKD-EPI", "mL/min/{1.73_m2}",
+				Map.of("mL/min/{1.73_m2}", AS_IS));
+
+		// Kalium — MFB parameter 3, 4 current rules, thresholds at 4.5 and 5.0 mmol/l. Serum or
+		// plasma and whole blood are two LOINC codes and one parameter; the G-Standaard lists both.
+		add("2823-3", 3, "Kalium (serum of plasma)", "mmol/L", CONCENTRATION);
+		add("6298-4", 3, "Kalium (bloed)", "mmol/L", CONCENTRATION);
+
+		// INR — MFB parameter 4, 3 current rules, all of them about how old the value is: "is de
+		// INR max. 24 uur oud".
+		add("6301-6", 4, "INR (trombocytenarm plasma)", "{INR}", RATIO);
+		add("34714-6", 4, "INR (bloed)", "{INR}", RATIO);
+
+		// Sirolimusdalspiegel — MFB parameter 326, 1 current rule.
+		add("29247-4", 326, "Sirolimus Cmin", "ug/L", Map.of("ug/L", AS_IS));
+
+		// Natrium and lithium — MFB parameters 2 and 71. No current rule tests them, but they are
+		// current parameters with a LOINC code of their own, so a future rule will find them.
+		add("2951-2", 2, "Natrium (serum of plasma)", "mmol/L", CONCENTRATION);
+		add("14334-7", 71, "Lithiumspiegel", "mmol/L", CONCENTRATION);
+
+		// Gewicht and lengte are read by dose checking rather than by the rules: 45.700 dose bands
+		// in BST643T carry a minimum weight and 1.215 a body surface bound, and evs2.0 reads both
+		// out of laboratoryData by these LOINC codes. Metres are converted to the centimetres its
+		// body model works in, so the number is right even if the unit attribute is ignored.
+		add("29463-7", null, "Gewicht", "kg", Map.of("kg", AS_IS));
+		add("8302-2", null, "Lengte", "cm", Map.of("cm", AS_IS, "m", BigDecimal.valueOf(100)));
+	}
+
+	private void add(String loinc, Integer mfbParameter, String display, String unit,
+			Map<String, BigDecimal> factorByUnit) {
+		byLoinc.put(loinc, new Determination(loinc, mfbParameter, display, unit, factorByUnit));
+	}
+
+	/** The determination for a LOINC code, or null when it is not one surveillance reads. */
+	public Determination forLoinc(String loincCode) {
+		return loincCode == null ? null : byLoinc.get(loincCode);
+	}
+
+	/** Every accepted LOINC code, in the order this class lists them. */
+	public List<String> acceptedCodes() {
+		return List.copyOf(byLoinc.keySet());
+	}
+
+	/** Every accepted determination, so the profile and the documentation can be checked against it. */
+	public List<Determination> all() {
+		return List.copyOf(byLoinc.values());
+	}
+}

@@ -33,7 +33,7 @@ import nl.digitalis.fhirhub.model.SessionType;
 
 class SessionParametersMapperTest {
 
-	private final SessionParametersMapper mapper = new SessionParametersMapper(new CodeSystemRegistry());
+	private final SessionParametersMapper mapper = new SessionParametersMapper(new CodeSystemRegistry(), new LabDeterminations());
 
 	@Test
 	void mapsAMinimalFormularySession() {
@@ -135,45 +135,133 @@ class SessionParametersMapperTest {
 				.hasMessageContaining("no coding in a system this interface routes");
 	}
 
+	/** The nierfunctie is what surveillance turns on, and the code travels through unchanged. */
+	@Test
+	void carriesTheLoincCodeAndTheUnitTheRulesEvaluateIn() {
+		LabResult lab = labResultFor("62238-1", 32, "mL/min/{1.73_m2}");
+
+		assertThat(lab.loinc()).isEqualTo("62238-1");
+		assertThat(lab.unit()).isEqualTo("mL/min/{1.73_m2}");
+		assertThat(lab.value()).isEqualTo("32");
+	}
+
+	/** Two LOINC codes, one MFB parameter: the G-Standaard lists both for kalium. */
+	@Test
+	void acceptsBothKaliumCodes() {
+		assertThat(labResultFor("2823-3", 5.2, "mmol/L").loinc()).isEqualTo("2823-3");
+		assertThat(labResultFor("6298-4", 5.2, "mmol/L").loinc()).isEqualTo("6298-4");
+	}
+
 	/**
-	 * memo, materiaal and bijzonderheid are one NHG Tabel 45 sleutelcode, not three fields.
-	 * They are split apart again only because the upstream dialect transmits them apart.
+	 * A determination no rule reads is refused rather than forwarded: a prescriber who sent a lab
+	 * value and got no signal would otherwise read that as an all-clear.
 	 */
 	@Test
-	void splitsTheNhgTabel45KeyCodeBackIntoItsPositions() {
-		Parameters parameters = parameters();
-		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
-				.setResource(new Observation()
-						.setCode(concept(Systems.NHG_TABEL_45, "RH24KQFB"))
-						.setValue(new Quantity().setValue(10))
-						.setEffective(new DateTimeType("2024-07-04")));
+	void rejectsADeterminationSurveillanceDoesNotRead() {
+		assertThatThrownBy(() -> labResultFor("718-7", 8.1, "mmol/L"))
+				.isInstanceOf(InvalidRequestException.class)
+				.hasMessageContaining("not a determination medication surveillance reads");
+	}
 
-		LabResult lab = mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
-				.patient().laboratoryData().getFirst();
-
-		assertThat(lab.memo()).isEqualTo("RH24");
-		assertThat(lab.material()).isEqualTo("KQ");
-		assertThat(lab.peculiarity()).isEqualTo("FB");
-		assertThat(lab.value()).isEqualTo("10");
-		assertThat(lab.keyCode()).isEqualTo("RH24KQFB");
+	/** The G-Standaard lists MDRD and cystatin C for the nierfunctie; Dutch labs report CKD-EPI. */
+	@Test
+	void rejectsTheEgfrFormulasDutchLaboratoriesDoNotReport() {
+		assertThatThrownBy(() -> labResultFor("77147-7", 32, "mL/min/{1.73_m2}"))
+				.isInstanceOf(InvalidRequestException.class);
+		assertThatThrownBy(() -> labResultFor("50210-4", 32, "mL/min/{1.73_m2}"))
+				.isInstanceOf(InvalidRequestException.class);
 	}
 
 	@Test
-	void padsAShortKeyCodeToTheFixedEightPositions() {
+	void rejectsALabCodingThatIsNotLoinc() {
 		Parameters parameters = parameters();
 		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
 				.setResource(new Observation()
-						.setCode(concept(Systems.NHG_TABEL_45, "ALDOB"))
-						.setValue(new StringType("10"))
+						.setCode(concept("urn:oid:2.16.840.1.113883.2.4.4.30.45", "KREAOMK"))
+						.setValue(quantity(32, "mL/min"))
 						.setEffective(new DateTimeType("2024-07-04")));
 
-		LabResult lab = mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
-				.patient().laboratoryData().getFirst();
+		assertThatThrownBy(() -> mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY)))
+				.isInstanceOf(InvalidRequestException.class)
+				.hasMessageContaining("requires a coding in http://loinc.org");
+	}
 
-		assertThat(lab.memo()).isEqualTo("ALDO");
-		assertThat(lab.material()).isEqualTo("B");
-		assertThat(lab.peculiarity()).isEmpty();
-		assertThat(lab.keyCode()).isEqualTo("ALDOB   ");
+	/**
+	 * The upstream evaluates the number in the unit the rule was written in, so the wrong one is
+	 * not a rounding error: mg/dL and mmol/L differ by a factor nobody downstream could spot.
+	 */
+	@Test
+	void rejectsAValueInAUnitTheDeterminationDoesNotAccept() {
+		assertThatThrownBy(() -> labResultFor("2823-3", 20, "mg/dL"))
+				.isInstanceOf(InvalidRequestException.class)
+				.hasMessageContaining("must be in [mmol/L]");
+	}
+
+	/** An eGFR is normalised per 1.73 m2, so it may not arrive claiming plain ml/min. */
+	@Test
+	void rejectsAnEgfrThatDoesNotDeclareItsNormalisedUnit() {
+		assertThatThrownBy(() -> labResultFor("62238-1", 32, "mL/min"))
+				.isInstanceOf(InvalidRequestException.class)
+				.hasMessageContaining("mL/min/{1.73_m2}");
+	}
+
+	/** Metres are converted to the centimetres the upstream body model works in. */
+	@Test
+	void convertsHeightToTheUnitTheUpstreamReads() {
+		assertThat(labResultFor("8302-2", 1.72, "m").value()).isEqualTo("172");
+		assertThat(labResultFor("8302-2", 172, "cm").value()).isEqualTo("172");
+	}
+
+	@Test
+	void requiresAQuantityRatherThanAnyValueType() {
+		Parameters parameters = parameters();
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
+				.setResource(new Observation()
+						.setCode(concept(Systems.LOINC, "62238-1"))
+						.setValue(new StringType("32"))
+						.setEffective(new DateTimeType("2024-07-04")));
+
+		assertThatThrownBy(() -> mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY)))
+				.isInstanceOf(InvalidRequestException.class)
+				.hasMessageContaining("valueQuantity is required");
+	}
+
+	/** The determination's own name stands in when the host sends no display. */
+	@Test
+	void fallsBackToTheDeterminationNameAsTheCaption() {
+		assertThat(labResultFor("62238-1", 32, "mL/min/{1.73_m2}").caption())
+				.isEqualTo("eGFR volgens CKD-EPI");
+	}
+
+	@Test
+	void passesTheHostsDisplayOnAsTheCaption() {
+		Parameters parameters = parameters();
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
+				.setResource(new Observation()
+						.setCode(new CodeableConcept().addCoding(new Coding()
+								.setSystem(Systems.LOINC).setCode("62238-1").setDisplay("nierfunctie")))
+						.setValue(quantity(32, "mL/min/{1.73_m2}"))
+						.setEffective(new DateTimeType("2024-07-04")));
+
+		assertThat(mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
+				.patient().laboratoryData().getFirst().caption())
+				.isEqualTo("nierfunctie");
+	}
+
+	private LabResult labResultFor(String loinc, double value, String ucumCode) {
+		Parameters parameters = parameters();
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
+				.setResource(new Observation()
+						.setCode(concept(Systems.LOINC, loinc))
+						.setValue(quantity(value, ucumCode))
+						.setEffective(new DateTimeType("2024-07-04")));
+
+		return mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
+				.patient().laboratoryData().getFirst();
+	}
+
+	private Quantity quantity(double value, String ucumCode) {
+		return new Quantity().setValue(value).setSystem(Systems.UCUM).setCode(ucumCode).setUnit(ucumCode);
 	}
 
 	/** ICPC-1 NL shape, enforced since v2 so a malformed code is a 400 not an upstream failure. */

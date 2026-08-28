@@ -71,7 +71,7 @@ class XmlRpcRequestBuilderTest {
 				List.of(new CodedItem("SNK", "a&b")),
 				List.of(),
 				List.of(),
-				List.of(new LabResult("GLUC", "B", "", LocalDate.of(2024, 7, 4), "<10 & \"low\"")));
+				List.of(new LabResult("2823-3", null, "mmol/L", LocalDate.of(2024, 7, 4), "<10 & \"low\"")));
 
 		SessionRequest request = new SessionRequest(
 				SessionType.FORMULARY, "A01", patient, "https://x.example/?a=1&b=2", Fixtures.XIS, null);
@@ -93,7 +93,7 @@ class XmlRpcRequestBuilderTest {
 		assertThat(xml).contains("<![CDATA[");
 		assertThat(xml).contains("<DigitalisRx>");
 		assertThat(xml).contains("<GStandaard SNK=\"10499\"");
-		assertThat(xml).contains("<NHG date=\"2024-07-04\" memo=\"ALDO\"");
+		assertThat(xml).contains("<LOINC num=\"62238-1\" caption=\"eGFR volgens CKD-EPI\" date=\"2024-07-04\"");
 	}
 
 	/**

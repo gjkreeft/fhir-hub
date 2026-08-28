@@ -91,7 +91,8 @@ Authorization: Basic ...
         "resourceType": "Observation",
         "status": "final",
         "code": { "coding": [ {
-          "system": "urn:oid:2.16.840.1.113883.2.4.4.30.45", "code": "ALDOB" } ] },
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.30.45", "code": "ALDO-B",
+          "display": "aldosteron in bloed" } ] },
         "effectiveDateTime": "2024-07-04",
         "valueQuantity": { "value": 10 } } }
   ]
@@ -151,7 +152,7 @@ back.
 | `allergies[]` + `SSK`/`SNK`/`OGGrp` | `AllergyIntolerance.code.coding` |
 | `contraIndications[]` + `CICode`/`ICPC` | `Condition.code.coding` |
 | `medications[]` + `PRK`/`HPK` | `MedicationStatement.medicationCodeableConcept` — see *Medication surveillance* |
-| `laboratoryData[].memo`/`mat`/`bijz` | **one** `Observation.code.coding`, NHG Tabel 45 |
+| `laboratoryData[].memo`/`mat`/`bijz` | `Observation.code.coding` in LOINC, forwarded as `<LOINC num=…>` — see *Lab determinations* |
 | `laboratoryData[].date` / `.value` | `Observation.effectiveDateTime` / `.value[x]` |
 | `endSessionUrl` | `Parameters.parameter:endSessionUrl.valueUrl`, http(s) only |
 | `xis.id` / `xis.version` | `Parameters.parameter:xisId` / `:xisVersion`, both `valueString` |
@@ -166,10 +167,17 @@ back.
 | `drugs[].opium` | the `OpiumActClassification` extension |
 | `advices[]` + `contentType` | `Communication.payload` — `contentString` or `contentAttachment` |
 
-**`memo` + `mat` + `bijz` are not three fields.** They are the 8-position NHG Tabel 45
-sleutelcode (memo 1–4, materiaal 5–6, bijzonderheid 7–8), which uniquely and permanently
-identifies a determination. Send the composite code; fhir-hub splits it apart again only
-because the upstream dialect transmits it apart. Short codes are space-padded.
+**Lab determinations: LOINC all the way through, from a closed list.** A host codes lab results in
+LOINC like the rest of FHIR, the upstream carries them as `<LOINC num=…>`, and the MFB datatest
+generator tests that same number — so nothing is translated and there is no NHG Tabel 45 mapping to
+maintain. The accepted codes are the G-Standaard's own: `BST684T` rows with `MFBEXSRT = 4` publish
+which LOINC codes count as which MFB parameter, and `BST685T` rows with `THMFBP = 2000` are every
+measurement a rule can test — twelve, four used by current rules, the nierfunctie in 666 of them —
+plus weight and height for dose checking. A code outside the list is a 400, not a silent no-op,
+because a prescriber who sent a lab value and got no signal would read that as an all-clear. Units
+are pinned per code for the same reason: the value is evaluated in the unit the rule was written in,
+so mg/dL where it expects mmol/L is a different answer. See *Lab determinations* in
+`IMPLEMENTATION_GUIDE.md` and `fhir/LabDeterminations`.
 
 **Gender.** FHIR has four administrative genders; Prescriptor's `PatientGender` has three —
 `M`, `F` and `X` ("Unknown"). `male`, `female` and `unknown` all map across. Sex-specific
@@ -259,7 +267,7 @@ nl-core profile, not by reading cardinalities:
 | --- | --- | --- |
 | Patient | `nl-core-Patient` | **0 errors.** The one that is ready today |
 | AllergyIntolerance | `nl-core-AllergyIntolerance` | **Undetermined.** Since the OIDs were pinned the coding is a member of the required binding `…60.121.11.2` by construction — that ValueSet composes `…60.40.2.8.2.14`, which includes `urn:oid:…1.750` unfiltered. The validator cannot confirm it: a sibling ValueSet in the same composition uses a SNOMED filter (`concept in 98061000146100`) that tx.fhir.org does not support, so the whole binding returns `SERVER_ERROR`. Nothing left to fix on this side |
-| Observation (lab) | `nl-core-LaboratoryTestResult` | **Fails, 3 errors.** `Observation.category` and its `laboratoryCategory` slice are required and are neither sent nor read here; and the TestCode binding rejects NHG Tabel 45 (`ALDOB`). Still rejected in the `0.12.0-labtrial.1` pre-release — publishing the CodeSystem was not enough, the binding itself has to change (Nictiz BITS **ZIB-639**) |
+| Observation (lab) | `nl-core-LaboratoryTestResult` | **Fails on `Observation.category`,** which is required together with its `laboratoryCategory` slice and is neither sent nor read here. The TestCode objection is gone: since lab values are LOINC, they satisfy `TestCodeLOINCCodelijst`, which composes all of `http://loinc.org` — so Nictiz BITS **ZIB-639** no longer blocks this side. Worth a fresh validator run before claiming anything |
 | Condition | *none applicable* | The contra-indication profile, `nl-core-MedicationContraIndication`, is on **`Flag`**. Of the 8 nl-core `Condition` profiles none models a medication contra-indication |
 | MedicationStatement | *none* | The package contains **no** `MedicationStatement` profile. `nl-core-MedicationUse2` is a Medicatieproces artifact, published separately |
 | MedicationRequest, Communication | *none* | The package contains no profile for either resource type |
@@ -333,7 +341,7 @@ exists so that no response in this API is un-parseable by a FHIR client.
 ## Build and run
 
 ```bash
-mvn test          # 85 tests; no network and no database needed
+mvn test          # 101 tests; no network and no database needed
 mvn spring-boot:run
 docker compose up --build
 ```

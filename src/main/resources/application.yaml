@@ -13,7 +13,7 @@ server:
 
 prescriptor:
   # The XML-RPC dispatch endpoint. Validated at startup; the application fails fast if absent.
-  target-url: ${PRESCRIPTOR_TARGET_URL:https://evs.prescriptor.nl/web_current/xmlrpc_dispatch.php}
+  target-url: ${PRESCRIPTOR_TARGET_URL:https://alfa.prescriptor-test.nl/api/prescriptor/xmlrpc_dispatch.php}
   connect-timeout: 10s
   read-timeout: 30s
 

@@ -39,14 +39,20 @@ Usage: #inline
 * medicationCodeableConcept.coding[0].system = "urn:oid:2.16.840.1.113883.2.4.4.10"
 * medicationCodeableConcept.coding[0].code = #18996
 
+// The determination medication surveillance turns on: 666 of the current MFB rules test the
+// nierfunctie. Note the unit — an eGFR is normalised per 1.73 m2 and is sent as such.
 Instance: ExampleLabResult
 InstanceOf: FhirHubLabObservation
 Usage: #inline
 * status = #final
-* code.coding[0].system = "urn:oid:2.16.840.1.113883.2.4.4.30.45"
-* code.coding[0].code = #ALDOB
+* code.coding[0].system = "http://loinc.org"
+* code.coding[0].code = #62238-1
+* code.coding[0].display = "eGFR volgens CKD-EPI"
 * effectiveDateTime = "2024-07-04"
-* valueQuantity.value = 10
+* valueQuantity.value = 65
+* valueQuantity.unit = "mL/min/1.73m2"
+* valueQuantity.system = "http://unitsofmeasure.org"
+* valueQuantity.code = #"mL/min/{1.73_m2}"
 
 Instance: ExampleFormularySessionInput
 InstanceOf: FhirHubFormularySessionInput

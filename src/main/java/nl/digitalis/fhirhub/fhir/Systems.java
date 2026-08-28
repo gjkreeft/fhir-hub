@@ -70,14 +70,12 @@ public final class Systems {
 	public static final String ICPC_1_NL = "urn:oid:2.16.840.1.113883.2.4.4.31.1";
 
 	/**
-	 * NHG Tabel 45 Diagnostische bepalingen.
+	 * LOINC, the system laboratory determinations are coded in on the way in.
 	 *
-	 * <p>Nictiz publishes this CodeSystem with {@code content: not-present}, so it does not
-	 * enumerate codes and accepts the 8-position sleutelcode (memo 1-4, materiaal 5-6,
-	 * bijzonderheid 7-8) that the NHG table itself defines. It currently ships only in the
-	 * zib2020 {@code 0.12.0-labtrial.1} pre-release; see Nictiz BITS ZIB-639.
+	 * <p>Which LOINC codes are accepted is not open: see {@link LabDeterminations}. The code is
+	 * forwarded as it arrives — the upstream tests LOINC numbers itself.
 	 */
-	public static final String NHG_TABEL_45 = "urn:oid:2.16.840.1.113883.2.4.4.30.45";
+	public static final String LOINC = "http://loinc.org";
 
 	/** WHO ATC classification. */
 	public static final String ATC = "http://www.whocc.no/atc";

@@ -15,7 +15,7 @@ and the open items. This file covers what the README does not: why the code is s
 ## Commands
 
 ```bash
-mvn test                 # 85 tests; no network and no database — WireMock stubs
+mvn test                 # 101 tests; no network and no database — WireMock stubs
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
@@ -69,10 +69,33 @@ dragging the other along.
 text inject markup. Everything goes through `XmlWriter` (StAX), which escapes text and
 attributes. `XmlRpcRequestBuilderTest.escapesMarkupInCallerSuppliedValues` guards this.
 
-**`memo` + `mat` + `bijz` are one code, not three.** The 8-position NHG Tabel 45 sleutelcode
-(memo 1–4, materiaal 5–6, bijzonderheid 7–8). It arrives as one `Observation.code.coding` and
-is split only because the upstream dialect wants it split. Do not "improve" this into three
-FHIR elements.
+**Lab values are LOINC end to end, and the list of them is the G-Standaard's.** There is no NHG
+Tabel 45 mapping and there should not be one: the upstream carries lab data as `<LOINC num=…>`, and
+the MFB datatest generator (`g-standaard/GStandaard/apps/mfb/functions`) builds a `DatatestLOINC`
+keyed on that number, so translating would add a table to maintain and a class of determinations
+that cannot be expressed at all.
+
+`fhir/LabDeterminations` holds the list, and it is a copy of published data: `BST684T` rows with
+`MFBEXSRT = 4` ("LOINC / Nederlandse Labcodeset") say which LOINC codes count as which MFB
+parameter, and `BST685T` rows with `THMFBP = 2000` are the twelve measurements a rule can test at
+all — current rules use four, the nierfunctie in 666 of them. Weight and height are read by dose
+checking rather than by the rules, through `evs2.0`'s own LOINC xpath. A code outside the list is
+refused, because forwarding it would tell a prescriber their lab data had been weighed when nothing
+read it.
+
+One eGFR code, `62238-1` (CKD-EPI), because that is what Dutch laboratories report. The G-Standaard
+also lists `77147-7` (MDRD) and `50210-4` (cystatin C) for the same parameter — adding them is one
+line each, but re-labelling one formula as another is not on, since they do not give the same
+number.
+
+Units are pinned per code and converted only where the conversion is exact (`m` → `cm`). The value
+is evaluated in the unit the rule was written in, so kalium in mg/dL is a different answer, not a
+rounded one. The eGFR must arrive as `mL/min/{1.73_m2}`: the G-Standaard compares it against ml/min
+thresholds unchanged, which is its decision to make and not one to hide behind a permissive unit.
+
+`LabDeterminationsTest` pins the table against `LabDeterminationVS`, which the profile binds — and
+note that binding *does* catch a wrong code even though LOINC is not distributed here, because the
+value set enumerates its concepts. That is the mechanism the G-Standaard bindings cannot use.
 
 **The two session types read their key from different members** — `PrescriptorSessionKey` for
 formulary, `SessionKey` for CreateRx. An upstream inconsistency, encoded in `SessionType` and
@@ -191,7 +214,8 @@ even though nothing here would have read them.
 
 **nl-core is not derived from, and the reasons were checked.** `nl-core-MedicationContraIndication`
 profiles `Flag` rather than `Condition`; `nl-core-MedicationUse2` is not in the nl-core package
-at all; `nl-core-LaboratoryTestResult` wants `Observation.category` on top of ZIB-639; and every
+at all; `nl-core-LaboratoryTestResult` wants an `Observation.category` this interface does not read
+(its TestCode objection died with the move to LOINC, so ZIB-639 is no longer the blocker); and every
 published nl-core R4 version is a pre-release. Only `nl-core-Patient` would validate clean today.
 Re-check against the package before reopening this, and do not assert nl-core conformance
 anywhere on the strength of the intention.
