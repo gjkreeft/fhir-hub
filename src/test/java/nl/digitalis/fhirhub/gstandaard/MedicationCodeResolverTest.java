@@ -5,10 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import nl.digitalis.fhirhub.model.CodedItem;
@@ -21,11 +20,15 @@ class MedicationCodeResolverTest {
 
 	@BeforeAll
 	static void setUp() {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource(
-				"jdbc:h2:mem:medcode-test;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'classpath:gstandaard-medcode.sql'",
-				"sa", "");
+		// H2's own DataSource: the resolver takes the JDBC interface, so no pool is needed to
+		// exercise it.
+		JdbcDataSource dataSource = new JdbcDataSource();
+		dataSource.setURL(
+				"jdbc:h2:mem:medcode-test;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'classpath:gstandaard-medcode.sql'");
+		dataSource.setUser("sa");
+		dataSource.setPassword("");
 
-		resolver = new MedicationCodeResolver(new JdbcTemplate(dataSource));
+		resolver = new MedicationCodeResolver(dataSource);
 	}
 
 	@Test

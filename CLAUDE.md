@@ -135,10 +135,12 @@ modules across two minors.
 What stands in for each:
 
 - `GStandaardDatabase` + `GStandaardJdbcBeanFactory` → `gstandaard/GStandaardJdbcConfig`, which
-  builds the same named Hikari pool from the same `gstandaard.datasource.*` properties, and a
-  plain `JdbcTemplate`. Deployment configuration is the house one either way. Spring's own
-  DataSource auto-configuration stays excluded, because this config builds its own named
-  datasource.
+  builds the same named Hikari pool from the same `gstandaard.datasource.*` properties.
+  Deployment configuration is the house one either way. Hikari is configured directly and
+  `MedicationCodeResolver` uses plain JDBC, so there is no `spring-boot-starter-jdbc` and nothing
+  to exclude — Boot's DataSource auto-configuration had to be switched off by name while that
+  starter was present, or it went looking for a `spring.datasource.url` that is deliberately not
+  set.
 - `T25Parser` → nothing. See *The coded dosage is passed through, not decoded* below.
 
 `MedicationCodeResolver` queries `medcode` directly, because the DAOs do not cover the PRK+GPK
@@ -281,6 +283,16 @@ holder cleverer.
 and let the server render them. Use `error/UnauthorizedException` rather than HAPI's
 `AuthenticationException` for 401s — HAPI special-cases the latter into a `text/plain` body,
 which would be the one un-parseable response in the API.
+
+**The Spring surface is deliberately small, and two starters have already been removed.**
+`spring-boot-starter-security` became `auth/BasicAuthenticationFilter` (above) and
+`spring-boot-starter-jdbc` became a `HikariConfig` and one `PreparedStatement`, together taking 13
+jars off the tree. What Boot still provides is worth keeping and should not be removed by reflex:
+the DI container, `@ConfigurationProperties` binding with its relaxed names, the embedded servlet
+container, the executable jar — and `spring-boot-dependencies`, which is the BOM that keeps a
+hundred transitives coherent and is the reason the tree is manageable at all. Removing Spring
+entirely would take about 12% of the bytes and hand you that arbitration by hand; the mass is
+`hapi-fhir-validation` and its tail (plantuml, icu4j, sqlite-jdbc), not Spring.
 
 **Jackson comes from HAPI, and from nowhere else.** `spring-boot-starter-jackson` is excluded
 from `starter-web` so only one Jackson is on the classpath, pinned by HAPI, which serialises

@@ -1,13 +1,19 @@
 package nl.digitalis.fhirhub.gstandaard;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import nl.digitalis.fhirhub.model.CodedItem;
 import nl.digitalis.fhirhub.model.MedicationCodes;
@@ -55,10 +61,10 @@ public class MedicationCodeResolver {
 			ORDER BY prk
 			""";
 
-	private final JdbcTemplate jdbc;
+	private final DataSource dataSource;
 
-	public MedicationCodeResolver(JdbcTemplate jdbc) {
-		this.jdbc = jdbc;
+	public MedicationCodeResolver(DataSource dataSource) {
+		this.dataSource = dataSource;
 	}
 
 	public List<MedicationCodes> resolve(List<CodedItem> medications) {
@@ -74,28 +80,56 @@ public class MedicationCodeResolver {
 		boolean byHpk = CodeSystemTokens.HPK.equals(medication.codeSystem());
 		long code = toCode(medication);
 
-		// query() rather than queryForObject(): an unknown code is an expected outcome that has
-		// to produce the message below, not an EmptyResultDataAccessException.
-		List<MedicationCodes> matches = jdbc.query(
-				byHpk ? BY_HPK : BY_PRK,
-				(rs, row) -> new MedicationCodes(
-						rs.getInt("prk"),
-						rs.getInt("gpk"),
-						byHpk ? rs.getInt("hpk") : null),
-				code);
+		// The first row is taken rather than a single row demanded: a drug on several packagings
+		// is normal, and an unknown code is an expected outcome that has to produce the message
+		// below rather than an exception from the query layer.
+		MedicationCodes match = firstMatch(byHpk ? BY_HPK : BY_PRK, code, byHpk);
 
-		if (matches.isEmpty()) {
+		if (match == null) {
 			throw new InvalidRequestException(
 					"G-Standaard has no product for %s %s, so it cannot take part in medication surveillance"
 							.formatted(medication.codeSystem(), medication.code()));
 		}
 
-		MedicationCodes codes = matches.getFirst();
-
 		log.debug("Resolved {} {} to PRK {} / GPK {}",
-				medication.codeSystem(), medication.code(), codes.prk(), codes.gpk());
+				medication.codeSystem(), medication.code(), match.prk(), match.gpk());
 
-		return codes;
+		return match;
+	}
+
+	/**
+	 * The whole of this application's JDBC. {@code null} when the code is unknown, which the
+	 * caller turns into the 400 that names it.
+	 *
+	 * <p>A {@link SQLException} is not that case and must not be confused with it: the database
+	 * being unreachable means surveillance cannot be run at all, so it becomes a 500 rather than
+	 * "no product found". The message is deliberately generic — a connection failure tends to
+	 * carry the host, the port and the account name, and none of that belongs in a response to a
+	 * caller — with the detail going to the log instead.
+	 */
+	private MedicationCodes firstMatch(String sql, long code, boolean byHpk) {
+		try (Connection connection = dataSource.getConnection();
+				PreparedStatement statement = connection.prepareStatement(sql)) {
+
+			statement.setLong(1, code);
+			statement.setMaxRows(1);
+
+			try (ResultSet rows = statement.executeQuery()) {
+				if (!rows.next()) {
+					return null;
+				}
+
+				return new MedicationCodes(
+						rows.getInt("prk"),
+						rows.getInt("gpk"),
+						byHpk ? rows.getInt("hpk") : null);
+			}
+		}
+		catch (SQLException e) {
+			log.error("G-Standaard lookup failed for code {}", code, e);
+			throw new InternalErrorException(
+					"The G-Standaard lookup medication surveillance depends on is unavailable");
+		}
 	}
 
 	private long toCode(CodedItem medication) {

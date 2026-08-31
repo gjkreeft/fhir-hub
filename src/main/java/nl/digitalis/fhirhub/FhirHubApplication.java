@@ -2,23 +2,24 @@ package nl.digitalis.fhirhub;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import nl.digitalis.fhirhub.config.PrescriptorProperties;
+import nl.digitalis.fhirhub.gstandaard.GStandaardProperties;
 
 /**
  * FHIR R4 interface for Digitalis Prescriptor 3.
  *
- * <p>Spring's own DataSource auto-configuration stays excluded: {@code GStandaardJdbcConfig}
- * builds its own named datasource from {@code gstandaard.datasource}, and letting Boot also
- * look for a primary one would only produce a startup failure over a
- * {@code spring.datasource.url} that is deliberately not set.
+ * <p>There is no DataSource auto-configuration to exclude any more: {@code GStandaardJdbcConfig}
+ * builds the Hikari pool itself from {@code gstandaard.datasource}, and Boot's JDBC
+ * auto-configuration left the classpath with {@code spring-boot-starter-jdbc}. Before that it had
+ * to be excluded by name, or Boot went looking for a primary {@code spring.datasource.url} that is
+ * deliberately not set and failed at startup.
  *
  * <p>fhir-hub still holds no session state. The database is a read-only reference lookup.
  */
-@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
-@EnableConfigurationProperties(PrescriptorProperties.class)
+@SpringBootApplication
+@EnableConfigurationProperties({ PrescriptorProperties.class, GStandaardProperties.class })
 public class FhirHubApplication {
 
 	public static void main(String[] args) {

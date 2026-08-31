@@ -20,6 +20,7 @@
 		<wiremock.version>3.13.2</wiremock.version>
 		<mariadb.version>3.5.10</mariadb.version>
 		<h2.version>2.4.240</h2.version>
+		<hikari.version>7.0.2</hikari.version>
 		<jackson.version>2.22.2</jackson.version>
 	</properties>
 
@@ -123,11 +124,17 @@
 			</exclusions>
 		</dependency>
 
-		<!-- JdbcTemplate and the Hikari pool behind GStandaardJdbcConfig. -->
+		<!--
+			The connection pool behind GStandaardJdbcConfig, taken directly rather than through
+			spring-boot-starter-jdbc. The starter's contribution was JdbcTemplate and a builder
+			that picks a pool off the classpath; this application issues one prepared statement,
+			from one class, against a pool it names explicitly — so the starter's six jars bought
+			nothing. Version follows Boot's BOM, which is what tested this Hikari against the rest.
+		-->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-jdbc</artifactId>
-			<version>${spring.boot.version}</version>
+			<groupId>com.zaxxer</groupId>
+			<artifactId>HikariCP</artifactId>
+			<version>${hikari.version}</version>
 		</dependency>
 
 		<!-- HAPI FHIR: R4 model, parsers, and the annotation-driven plain server -->
