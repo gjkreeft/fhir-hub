@@ -3,6 +3,8 @@ package nl.digitalis.fhirhub.fhir;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -246,6 +248,60 @@ class SessionParametersMapperTest {
 		assertThat(mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
 				.patient().laboratoryData().getFirst().caption())
 				.isEqualTo("nierfunctie");
+	}
+
+	/**
+	 * Several results for one determination are resolved upstream by taking the most recent, and the
+	 * comparison reads the date attribute alone — so the time of day the host stated has to survive
+	 * the mapping. Truncated to a date, two results from one day tie, and the engine breaks a tie by
+	 * the order they were sent in rather than by which is later.
+	 */
+	@Test
+	void keepsTheTimeOfDayTheHostStated() {
+		assertThat(labResultAt("2024-07-04T13:09:04").time()).isEqualTo(LocalTime.of(13, 9, 4));
+		assertThat(labResultAt("2024-07-04T13:09:00").time()).isEqualTo(LocalTime.of(13, 9));
+	}
+
+	/** A date is a claim about precision; a midnight the host did not send would be another one. */
+	@Test
+	void statesNoTimeWhenTheHostStatedOnlyADate() {
+		assertThat(labResultAt("2024-07-04").time()).isNull();
+		assertThat(labResultAt("2024-07-04").date()).isEqualTo(LocalDate.of(2024, 7, 4));
+	}
+
+	/** Every result is forwarded as it arrived: which one counts is the rules engine's decision. */
+	@Test
+	void forwardsRepeatedDeterminationsInTheOrderTheyArrived() {
+		Parameters parameters = parameters();
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
+				.setResource(observation("62238-1", quantity(32, "mL/min/{1.73_m2}"), "2024-07-04T09:15:00"));
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
+				.setResource(observation("62238-1", quantity(28, "mL/min/{1.73_m2}"), "2024-07-04T16:40:00"));
+
+		List<LabResult> results = mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
+				.patient().laboratoryData();
+
+		assertThat(results).hasSize(2);
+		assertThat(results.get(0).value()).isEqualTo("32");
+		assertThat(results.get(0).time()).isEqualTo(LocalTime.of(9, 15));
+		assertThat(results.get(1).value()).isEqualTo("28");
+		assertThat(results.get(1).time()).isEqualTo(LocalTime.of(16, 40));
+	}
+
+	private LabResult labResultAt(String effectiveDateTime) {
+		Parameters parameters = parameters();
+		parameters.addParameter().setName(SessionParametersMapper.PARAM_OBSERVATION)
+				.setResource(observation("62238-1", quantity(32, "mL/min/{1.73_m2}"), effectiveDateTime));
+
+		return mapper.toSessionRequest(bind(parameters, SessionType.FORMULARY))
+				.patient().laboratoryData().getFirst();
+	}
+
+	private Observation observation(String loinc, Quantity value, String effectiveDateTime) {
+		return new Observation()
+				.setCode(concept(Systems.LOINC, loinc))
+				.setValue(value)
+				.setEffective(new DateTimeType(effectiveDateTime));
 	}
 
 	private LabResult labResultFor(String loinc, double value, String ucumCode) {

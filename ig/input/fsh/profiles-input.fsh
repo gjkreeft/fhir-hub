@@ -101,7 +101,7 @@ Description: "A single laboratory determination or body measurement, coded in LO
 * code ^comment = "The list is closed and short, because the G-Standaard's list of testable measurements is: see LabDeterminationVS. A determination outside it is a 400 rather than a value that is quietly ignored — a prescriber who sent a lab result and got no signal would otherwise read that as an all-clear. Coding.display is passed on as the caption Prescriptor shows, and is best left out: this interface supplies its own caption, while a display that is not LOINC's own term for the code is a validation error in any tooling that has LOINC loaded."
 * effective[x] only dateTime
 * effectiveDateTime 1..1
-* effectiveDateTime ^comment = "Required, because the rules test the age of the value as well as the value: 'is the ClCr older than 13 months', 'is the kaliumspiegel older than 72 hours', 'is the INR at most 24 hours old'. A value without a date cannot be evaluated."
+* effectiveDateTime ^comment = "Required, because the rules test the age of the value as well as the value: 'is the ClCr older than 13 months', 'is the kaliumspiegel older than 72 hours', 'is the INR at most 24 hours old'. A value without a date cannot be evaluated. Send the time of day when you have it: where a host sends several results for one determination, only the most recent is evaluated, and results carrying a date alone are equally recent — that tie is resolved by taking the one sent first, not the later one. Weight and height are read by dose checking rather than by the rules, and there the first one in the request is used whatever its date."
 * value[x] only Quantity
 * value[x] 1..1
 * valueQuantity.value 1..1

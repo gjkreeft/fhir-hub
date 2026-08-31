@@ -160,7 +160,7 @@ back.
 | `contraIndications[]` + `CICode`/`ICPC` | `Condition.code.coding` |
 | `medications[]` + `PRK`/`HPK` | `MedicationStatement.medicationCodeableConcept` — see *Medication surveillance* |
 | `laboratoryData[].memo`/`mat`/`bijz` | `Observation.code.coding` in LOINC, forwarded as `<LOINC num=…>` — see *Lab determinations* |
-| `laboratoryData[].date` / `.value` | `Observation.effectiveDateTime` / `.value[x]` |
+| `laboratoryData[].date` / `.value` | `Observation.effectiveDateTime` / `.value[x]` — the time of day is carried, see *Lab determinations* |
 | `endSessionUrl` | `Parameters.parameter:endSessionUrl.valueUrl`, http(s) only |
 | `xis.id` / `xis.version` | `Parameters.parameter:xisId` / `:xisVersion`, both `valueString` |
 | `prescription` (CreateRx) | `Parameters.parameter:prescription`, a `MedicationRequest` |
@@ -185,6 +185,17 @@ because a prescriber who sent a lab value and got no signal would read that as a
 are pinned per code for the same reason: the value is evaluated in the unit the rule was written in,
 so mg/dL where it expects mmol/L is a different answer. See *Lab determinations* in
 `IMPLEMENTATION_GUIDE.md` and `fhir/LabDeterminations`.
+
+**Several results for one determination: the upstream takes the most recent, so the moment is part
+of the payload.** `TProtocolParserDataLOINC.GetValueExt` in the rules engine
+(`../clinical-rules-engine/.../LogicUnits/data/uDataLOINC.pas`) tests `MostRecent` and ignores the
+rest, and `TCRELabValueList.MostRecent` compares the `date` attribute alone, keeping the first of a
+tie. `LabResult` therefore carries a `LocalTime` beside its `LocalDate` and `DigitalisRxBuilder`
+writes `yyyy-MM-dd'T'HH:mm:ss` when the host stated a time — with seconds always, because
+`StringToDate` reads exactly ten characters as a date and anything else as a full moment, so a
+formatter that drops zero seconds matches neither. Truncating to a date, as this did until now,
+ordered two same-day results by the sequence the host listed them in. This service still forwards
+every result as it arrived: which one counts is the engine's decision, not one to pre-empt here.
 
 **Gender.** FHIR has four administrative genders; Prescriptor's `PatientGender` has three —
 `M`, `F` and `X` ("Unknown"). `male`, `female` and `unknown` all map across. Sex-specific

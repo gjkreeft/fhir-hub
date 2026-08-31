@@ -76,6 +76,28 @@ check "landing page"     "text/html"        "$BASE/fhir/"
 check "package"          "application/gzip" "$BASE/fhir/package.tgz"
 check "package-list"     "json"             "$BASE/fhir/package-list.json"
 check "artifact index"   "text/html"        "$BASE/fhir/artifacts.html"
+# The publish box on every page links here, so it is the most visible link on the site. The
+# publisher writes no such page — scripts/build-history.mjs does, after it — and the first release
+# went out without one.
+check "directory of published versions" "text/html" "$BASE/fhir/history.html"
+
+echo
+echo "-- the pages' own links, which no canonical check covers"
+# Every profile page carries JSON / XML / TTL tabs, and the publisher names those files
+# `<id>.profile.<format>.html`. The first deploy served all 45 of them as 403 while every canonical
+# above passed: ModSecurity's CRS rule 930130 matches `.profile` from restricted-files.data as a
+# substring, and the publisher's filenames contain it. Nothing in this script looked at a filename
+# the publisher had linked to rather than one a canonical resolves to, so the site verified clean
+# and was broken in a browser. Both an ordinary id and one containing a dot are checked, since a
+# rewrite rule tends to break on the second.
+check "profile page, JSON rendering (filename contains .profile)" "text/html" \
+	"$BASE/fhir/StructureDefinition-fhirhub-FormularySessionInput.profile.json.html"
+check "profile page, XML rendering"  "text/html" \
+	"$BASE/fhir/StructureDefinition-fhirhub-FormularySessionInput.profile.xml.html"
+check "profile page, TTL rendering"  "text/html" \
+	"$BASE/fhir/StructureDefinition-fhirhub-FormularySessionInput.profile.ttl.html"
+check "extension page, JSON rendering (id contains a dot)" "text/html" \
+	"$BASE/fhir/StructureDefinition-ext-Dosage.CodedDirections.profile.json.html"
 
 echo
 echo "-- a cache in between must not mix the representations"

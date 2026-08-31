@@ -1,8 +1,9 @@
 # spec.digitalis.nl on Apache — the rules that make the fhir-hub canonicals dereference.
 #
 # Install as <document-root>/.htaccess, at the ROOT of the document root and **not** inside
-# /fhir/: hosting/deploy.sh runs `rsync --delete` into that directory and would remove it on the
-# next release. Everything below is scoped to /fhir/ anyway, so the rest of the host is untouched.
+# /fhir/: hosting/deploy.sh replaces that directory wholesale on every release and an .htaccess
+# inside it would go with the old one. Everything below is scoped to /fhir/ anyway, so the rest of
+# the host is untouched.
 #
 # It can equally go verbatim inside a <Directory> or <VirtualHost> block in the server config,
 # which is faster (no per-request .htaccess lookup) and is the better home if you have access to
@@ -17,6 +18,18 @@
 # whichever one the request arrived on.
 
 DirectoryIndex index.html
+
+# ---------------------------------------------------------------------------------------------
+# Nothing here denies anything, and that is worth stating: the publisher names the JSON, XML and
+# TTL renderings of every profile `<id>.profile.<format>.html`, so a rule aimed at the shell
+# dotfile `.profile` swallows 45 published pages at a stroke. That is not a hypothetical. It is
+# what happened on the nginx deployment's first release, and the culprit there was not the web
+# server's own configuration but ModSecurity running the OWASP CRS: rule 930130 matches
+# REQUEST_FILENAME against restricted-files.data with `@pmFromFile`, which is a substring match,
+# and `.profile` is line 34 of that file. On Apache the equivalents are mod_security with the same
+# rule set, or a `<FilesMatch "\.profile">`. The symptom is a path that does not exist answering
+# 403 rather than 404. hosting/verify.sh fetches one of these pages after every deploy.
+# ---------------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------
 # Content types. The IG Publisher writes each resource as StructureDefinition-<id>.{json,xml,ttl}

@@ -20,6 +20,15 @@ final class DigitalisRxBuilder {
 
 	private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
+	/**
+	 * Seconds always, because the engine branches on the string's length: {@code StringToDate} in
+	 * {@code uCREFormatSettings.pas} treats exactly ten characters as a date and everything else as
+	 * {@code yyyy-mm-ddThh:mm:ss}. {@link DateTimeFormatter#ISO_LOCAL_DATE_TIME} would omit
+	 * zero seconds and produce neither.
+	 */
+	private static final DateTimeFormatter UPSTREAM_MOMENT =
+			DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
 	private DigitalisRxBuilder() {
 	}
 
@@ -81,12 +90,17 @@ final class DigitalisRxBuilder {
 				// the generator in g-standaard/apps/mfb builds a DatatestLOINC keyed on this
 				// number. The unit is carried too — Prescriptor_Units reads it to convert weight
 				// and height — though the value is already in the unit the rules evaluate in.
+				//
+				// Results are sent as they arrived: no de-duplication and no ordering. Where a host
+				// sends several for one determination the engine takes the most recent, which is
+				// its decision to make and needs the date attribute to be precise enough to make it
+				// — see upstreamMoment below.
 				p.element("laboratoryData", l -> {
 					for (LabResult lab : patient.laboratoryData()) {
 						l.empty("LOINC")
 								.attribute("num", lab.loinc())
 								.attribute("caption", lab.caption())
-								.attribute("date", lab.date().format(ISO_DATE))
+								.attribute("date", upstreamMoment(lab))
 								.attribute("value", lab.value())
 								.attribute("unit", lab.unit());
 					}
@@ -95,6 +109,24 @@ final class DigitalisRxBuilder {
 				p.empty("referrals");
 			});
 		}));
+	}
+
+	/**
+	 * The {@code date} attribute of one determination, in one of the two forms the rules engine
+	 * parses: {@code yyyy-mm-dd} when the host stated only a date, {@code yyyy-mm-ddThh:mm:ss} when
+	 * it stated a time.
+	 *
+	 * <p>The time is not decoration. Several results for one determination are resolved by
+	 * {@code TCRELabValueList.MostRecent}, which compares this attribute and keeps the first of a
+	 * tie — so with date-only values, two results from one day are ordered by the sequence they were
+	 * sent in rather than by which is later.
+	 */
+	private static String upstreamMoment(LabResult lab) {
+		if (lab.time() == null) {
+			return lab.date().format(ISO_DATE);
+		}
+
+		return lab.date().atTime(lab.time()).format(UPSTREAM_MOMENT);
 	}
 
 	private static void writeGStandaard(XmlWriter xml, CodedItem item) {

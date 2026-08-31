@@ -51,6 +51,4 @@ may expect to be able to do and cannot yet.
 
 ### Getting in touch
 
-Questions, or a case this guide does not cover: contact Digitalis. If you are moving from the
-JSON API, ask for the field-by-field mapping table, which lists each JSON field alongside its
-FHIR equivalent.
+Questions, or a case this guide does not cover: contact Digitalis.

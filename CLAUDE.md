@@ -97,6 +97,20 @@ also lists `77147-7` (MDRD) and `50210-4` (cystatin C) for the same parameter �
 line each, but re-labelling one formula as another is not on, since they do not give the same
 number.
 
+**The time of day on a lab result is load-bearing.** The rules engine resolves several results for
+one determination by taking the most recent (`TProtocolParserDataLOINC.GetValueExt`), and
+`TCRELabValueList.MostRecent` compares the `date` attribute alone and keeps the *first* of a tie. So
+a date-only value puts every result of one day at midnight and hands the decision to document
+order. `LabResult` carries a nullable `LocalTime`, and `DigitalisRxBuilder.upstreamMoment` writes
+`yyyy-MM-dd'T'HH:mm:ss` with seconds always — the engine's `StringToDate` branches on the string
+being exactly ten characters, so `ISO_LOCAL_DATE_TIME` would drop zero seconds and match neither
+form. A host that stated only a date still gets a date: precision is a claim.
+
+Nothing here de-duplicates or reorders the results — which one counts is the engine's decision, and
+weight and height do not even go by date (`evs2.0`'s own xpath takes the first node). That is
+documented for integrators under *Lab determinations*, and it is the kind of thing they cannot
+discover from the profiles.
+
 Units are pinned per code and converted only where the conversion is exact (`m` → `cm`). The value
 is evaluated in the unit the rule was written in, so kalium in mg/dL is a different answer, not a
 rounded one. The eGFR must arrive as `mL/min/{1.73_m2}`: the G-Standaard compares it against ml/min
@@ -323,6 +337,14 @@ before making the request and is on by default, so an http-only deployment is re
 browser and unusable by tooling. **The `ImplementationGuide` canonical needs its own rule**,
 because the publisher renders no page for it — with the fallback kept out of the general rule, so
 a mistyped canonical is a 404 rather than the landing page dressed up as a profile.
+
+**`history.html` is built after the publisher, not by it.** The publish box on every rendered page
+links to `{canonical}/history.html` and the publisher writes no such file — it reserves the name for
+the publication process, which here is `hosting/deploy.sh`. Adding `history.md` to `pages:` is the
+obvious move and the publisher rejects it by name, with three broken links thrown in because the
+absolute release URLs resolve to nothing inside `output/`. `ig/scripts/build-history.mjs` runs after
+the publisher, reads `package-list.json` — the file `deploy.sh` already gates a release on — and
+clones its chrome from a page the publisher just rendered, so the template stays single-sourced.
 
 **`ig.ini` takes no comments.** A `;` line makes the publisher report that it cannot find an
 `ig.ini` at all.

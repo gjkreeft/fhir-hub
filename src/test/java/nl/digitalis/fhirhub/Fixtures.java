@@ -44,7 +44,7 @@ public final class Fixtures {
 				List.of(new CodedItem("CICode", "228"), new CodedItem("ICPC", "A01")),
 				List.of(new CodedItem("PRK", "8060")),
 				List.of(new LabResult("62238-1", "eGFR volgens CKD-EPI", "mL/min/{1.73_m2}",
-						LocalDate.of(2024, 7, 4), "65")));
+						LocalDate.of(2024, 7, 4), null, "65")));
 	}
 
 	public static final XisInfo XIS = new XisInfo("xis-001", "1.0");

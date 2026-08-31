@@ -523,9 +523,32 @@ the kaliumspiegel older than 72 hours*, *is de INR max. 24 uur oud* — so `effe
 required, and it must be when the sample was taken rather than when the report was released. A
 value older than the rule's window counts as absent.
 
-**Sending several.** One determination per `observation` parameter, repeated as needed. `component`
-is not read — resolve a multi-component result to one number first. `interpretation`,
-`referenceRange`, `method` and `note` are ignored: this is an input to a decision, not a lab report.
+**Send the time of day when you have it.** `effectiveDateTime` may be a date alone, and a date alone
+is forwarded as a date. But the time is used when it is there, and the paragraph below is why it is
+worth sending: it is what orders two results from one day.
+
+**Only the most recent result for a determination is used.** Send two eGFRs and the rules engine
+tests the later one and ignores the earlier. It is not an average, and the older value is not tested
+separately against the same rule — so a result you send is not necessarily a result that was weighed.
+Two consequences worth designing around:
+
+- **Same-day results need a time to be ordered.** Two results whose `effectiveDateTime` states only
+  a date are equally recent as far as the engine is concerned, and it resolves that tie by taking
+  the one that appears **first** in the request. Sending this morning's value before this
+  afternoon's would then let the morning value decide. With a time on both, the later one wins as
+  you would expect.
+- **Weight and height are the exception, and they do not go by date at all.** They are read by dose
+  checking rather than by the rules, and that reads the **first** `29463-7` and the first `8302-2`
+  in the request whatever their dates say. Send one of each, and send the current one.
+
+If you hold a history, send the determination you want weighed rather than the series. Nothing is
+gained by sending more: the extra values change no decision, and they cost you the certainty of
+knowing which one did.
+
+**Sending several.** One determination per `observation` parameter, repeated as needed — subject to
+the paragraph above. `component` is not read — resolve a multi-component result to one number first.
+`interpretation`, `referenceRange`, `method` and `note` are ignored: this is an input to a decision,
+not a lab report.
 
 ## Profiles
 
@@ -747,9 +770,7 @@ developer: they name the element that failed.
   a 400 that names it; nothing is silently skipped. Refresh the code and retry rather than dropping
   the drug from the list.
 - **No patient identity comes back.** Correlate the Bundle with your own record using the session
-  id you polled with.
-- **`xisId` and `xisVersion` never reach Prescriptor.** Send them anyway: it is how a support
-  question gets traced to your calls.
+  id you requested it with.
 - **Structured dosing is not round-tripped.** Edit the `CodedDirections` extension, not `timing`.
 - **A GPK-coded prescription cannot be handed back** to `$createrx-session`, which needs a PRK or an
   HPK. See [`prescription`](#prescription).
@@ -758,8 +779,6 @@ developer: they name the element that failed.
   session opened on partial data.
 - **Lab units are dropped.** Send values in the determination's own unit; a `Quantity.unit` is
   ignored.
-- **Retries are not safe on `$session-result`.** Trigger it from the `endSessionUrl` redirect, not
-  from a poll, and guard against a double call. See *One shot* above.
 
 ## Moving from the JSON API
 
@@ -778,8 +797,11 @@ semantics and the status codes do not. Three differences go beyond syntax.
   JSON API took a code alongside a `PRK`, `SSK` or `ICPC` token, here the token is replaced by the
   URI from [Code systems](#code-systems). The tokens themselves are not accepted as a `system`.
 
-Everything else is a mapping question, and the field-by-field table Digitalis can send you covers
-it.
+Everything else is answered by the endpoint sections above, and they are the place to answer it
+from. This interface is specified in its own terms rather than as a translation of the JSON API, so
+read the operation you are calling and the profile it names, and build against those — porting your
+existing payloads field by field will carry across assumptions the JSON API allowed and this one
+does not.
 
 ## Current limitations
 
@@ -804,6 +826,4 @@ not in the running service.
   reaches Prescriptor, and comes back as a 400 from the medication lookup rather than as a
   validation error.
 
-Questions, or a case this document does not cover: contact Digitalis. If you are moving from the
-JSON API, ask for the field-by-field mapping table, which lists each JSON field alongside its FHIR
-equivalent.
+Questions, or a case this document does not cover: contact Digitalis.

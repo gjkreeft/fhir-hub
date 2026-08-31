@@ -3,7 +3,9 @@ package nl.digitalis.fhirhub.fhir;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.Set;
 import org.hl7.fhir.r4.model.AllergyIntolerance;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Condition;
 import org.hl7.fhir.r4.model.Dosage;
 import org.hl7.fhir.r4.model.Extension;
@@ -25,6 +28,7 @@ import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.UrlType;
 import org.springframework.stereotype.Component;
 
+import ca.uhn.fhir.model.api.TemporalPrecisionEnum;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import nl.digitalis.fhirhub.fhir.LabDeterminations.Determination;
 import nl.digitalis.fhirhub.model.CodedItem;
@@ -374,11 +378,13 @@ public class SessionParametersMapper {
 								+ " weighed. Accepted: " + determinations.acceptedCodes());
 			}
 
+			Effective effective = effective(observation);
 			results.add(new LabResult(
 					determination.loinc(),
 					coding.hasDisplay() ? coding.getDisplay() : determination.display(),
 					determination.unit(),
-					effectiveDate(observation),
+					effective.date(),
+					effective.time(),
 					valueIn(observation, determination)));
 		}
 
@@ -399,13 +405,36 @@ public class SessionParametersMapper {
 		return null;
 	}
 
-	private LocalDate effectiveDate(Observation observation) {
+	/**
+	 * When the sample was taken, to the precision the host stated it in.
+	 *
+	 * <p>The time of day is kept rather than truncated away. Several results for one determination
+	 * are resolved upstream by taking the most recent — {@code TProtocolParserDataLOINC.GetValueExt}
+	 * in the rules engine — and that comparison reads the {@code date} attribute alone. Sending a
+	 * date-only value puts every result of one day at midnight, and the engine's most-recent scan
+	 * keeps the first of a tie, so this morning's eGFR would beat this afternoon's whenever the host
+	 * listed it first. The host had the time; dropping it here is what loses the ordering.
+	 *
+	 * <p>A host that states only a date still gets a date: it is a claim about precision, and
+	 * inventing a midnight it did not send would be a different claim.
+	 */
+	private Effective effective(Observation observation) {
 		if (!observation.hasEffectiveDateTimeType()) {
 			throw new InvalidRequestException("Observation.effectiveDateTime is required");
 		}
 
-		return observation.getEffectiveDateTimeType().getValue()
-				.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+		DateTimeType effective = observation.getEffectiveDateTimeType();
+		ZonedDateTime moment = effective.getValue().toInstant().atZone(ZoneId.systemDefault());
+		boolean statedTime = effective.getPrecision() != null
+				&& effective.getPrecision().ordinal() >= TemporalPrecisionEnum.MINUTE.ordinal();
+
+		// Seconds are the finest the upstream parses; anything below is dropped rather than rounded.
+		return new Effective(moment.toLocalDate(),
+				statedTime ? moment.toLocalTime().withNano(0) : null);
+	}
+
+	/** {@code effectiveDateTime}, split into the two attributes the upstream document carries. */
+	private record Effective(LocalDate date, LocalTime time) {
 	}
 
 	/**

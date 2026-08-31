@@ -27,3 +27,5 @@ ig/output_comparison/
 ig/temp/
 ig/template/
 ig/input-cache/
+# Written into ig/ by the publisher, not by anything here.
+ig/Requirements-fromNarrative.json

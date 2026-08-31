@@ -70,6 +70,11 @@ npx sushi .
 node scripts/stamp-version.mjs
 java -jar .pkg/publisher.jar -ig . -no-sushi
 
+# After the publisher, not before: the page it writes is the one the publisher deliberately does
+# not — see scripts/build-history.mjs — and it is cloned from a page the publisher has just
+# rendered.
+node scripts/build-history.mjs
+
 # ---------------------------------------------------------------------------------------------
 # Report. The publisher exits 0 whatever its QA found, and 61 expected warnings are enough to
 # bury one real error in the scroll-back, so the count is repeated here and errors fail the build.

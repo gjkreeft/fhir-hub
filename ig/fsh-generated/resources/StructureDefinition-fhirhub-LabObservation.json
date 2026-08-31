@@ -33,7 +33,7 @@
       {
         "id": "Observation.effective[x]",
         "path": "Observation.effective[x]",
-        "comment": "Required, because the rules test the age of the value as well as the value: 'is the ClCr older than 13 months', 'is the kaliumspiegel older than 72 hours', 'is the INR at most 24 hours old'. A value without a date cannot be evaluated.",
+        "comment": "Required, because the rules test the age of the value as well as the value: 'is the ClCr older than 13 months', 'is the kaliumspiegel older than 72 hours', 'is the INR at most 24 hours old'. A value without a date cannot be evaluated. Send the time of day when you have it: where a host sends several results for one determination, only the most recent is evaluated, and results carrying a date alone are equally recent — that tie is resolved by taking the one sent first, not the later one. Weight and height are read by dose checking rather than by the rules, and there the first one in the request is used whatever its date.",
         "min": 1,
         "type": [
           {

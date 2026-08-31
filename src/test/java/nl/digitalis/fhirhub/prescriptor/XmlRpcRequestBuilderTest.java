@@ -3,6 +3,7 @@ package nl.digitalis.fhirhub.prescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,8 @@ class XmlRpcRequestBuilderTest {
 				List.of(new CodedItem("SNK", "a&b")),
 				List.of(),
 				List.of(),
-				List.of(new LabResult("2823-3", null, "mmol/L", LocalDate.of(2024, 7, 4), "<10 & \"low\"")));
+				List.of(new LabResult("2823-3", null, "mmol/L", LocalDate.of(2024, 7, 4), null,
+						"<10 & \"low\"")));
 
 		SessionRequest request = new SessionRequest(
 				SessionType.FORMULARY, "A01", patient, "https://x.example/?a=1&b=2", Fixtures.XIS, null);
@@ -94,6 +96,50 @@ class XmlRpcRequestBuilderTest {
 		assertThat(xml).contains("<DigitalisRx>");
 		assertThat(xml).contains("<GStandaard SNK=\"10499\"");
 		assertThat(xml).contains("<LOINC num=\"62238-1\" caption=\"eGFR volgens CKD-EPI\" date=\"2024-07-04\"");
+	}
+
+	/**
+	 * The rules engine resolves several results for one determination by taking the most recent, and
+	 * it compares this attribute alone. Date-only values all sit at midnight, so a host that sends
+	 * two eGFRs from one day would have them ordered by the sequence they were listed in.
+	 *
+	 * <p>Seconds are always written: {@code StringToDate} treats a ten-character string as a date and
+	 * anything else as {@code yyyy-mm-ddThh:mm:ss}, so a value that drops zero seconds matches
+	 * neither form.
+	 */
+	@Test
+	void writesTheTimeOfDayWhenTheDeterminationCarriesOne() {
+		String xml = builder.openSession(sessionWithLabTime(LocalTime.of(13, 9, 4)),
+				Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("date=\"2024-07-04T13:09:04\"");
+
+		xml = builder.openSession(sessionWithLabTime(LocalTime.of(13, 9)),
+				Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("date=\"2024-07-04T13:09:00\"");
+	}
+
+	/** A host that stated only a date gets the date-only form, which is a different claim. */
+	@Test
+	void writesADateAloneWhenTheDeterminationCarriesNoTime() {
+		String xml = builder.openSession(sessionWithLabTime(null), Fixtures.CREDENTIALS, List.of());
+
+		assertThat(xml).contains("date=\"2024-07-04\"");
+	}
+
+	private static SessionRequest sessionWithLabTime(LocalTime time) {
+		PatientContext patient = new PatientContext(
+				"F",
+				LocalDate.of(1980, 1, 1),
+				List.of(),
+				List.of(),
+				List.of(),
+				List.of(new LabResult("62238-1", "eGFR volgens CKD-EPI", "mL/min/{1.73_m2}",
+						LocalDate.of(2024, 7, 4), time, "65")));
+
+		return new SessionRequest(
+				SessionType.FORMULARY, "A01", patient, "https://x.example/end", Fixtures.XIS, null);
 	}
 
 	/**
