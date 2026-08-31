@@ -15,12 +15,12 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.release>25</maven.compiler.release>
 		<spring.boot.version>4.1.1</spring.boot.version>
-		<hapi.fhir.version>8.10.1</hapi.fhir.version>
+		<hapi.fhir.version>8.12.0</hapi.fhir.version>
 		<junit.version>6.1.3</junit.version>
 		<wiremock.version>3.13.2</wiremock.version>
 		<mariadb.version>3.5.10</mariadb.version>
 		<h2.version>2.4.240</h2.version>
-		<jackson.version>2.22.1</jackson.version>
+		<jackson.version>2.22.2</jackson.version>
 	</properties>
 
 	<!--
@@ -41,9 +41,11 @@
 				Jackson is aligned FIRST, so it wins over Boot's BOM below — the first import of a
 				managed version is the one that applies.
 
-				The highest requirement in the tree sets the version, and it comes from the
-				reference validator: ca.uhn.hapi.fhir:org.hl7.fhir.validation needs
-				jackson-databind 2.22.1, while Boot 4.1.1 manages 2.21.5. Leaving Boot in charge
+				The requirement that matters comes from the reference validator:
+				ca.uhn.hapi.fhir:org.hl7.fhir.validation needs jackson-databind 2.22.1, while Boot
+				4.1.1 manages 2.21.5 — so the version here has to be at least the former. It is the
+				current 2.x release rather than exactly 2.22.1, which satisfies the same rule and
+				keeps the tree on one supported line. Leaving Boot in charge
 				would DOWNGRADE the validator's own dependency, which is the exact failure
 				requireUpperBoundDeps exists to catch, and does catch: drop this import and the
 				build fails rather than the validator.
@@ -69,34 +71,34 @@
 			</dependency>
 
 			<!--
-				Two pins for divergence inside HAPI FHIR's own tree, which Boot's BOM does not
-				cover. hapi-fhir-base is reachable at 8.10.0 as well as 8.10.1, and the
-				OpenTelemetry annotations at 2.26.1 as well as 2.27.0 — where nearest-wins picked
-				the OLDER one. Both are aligned here so one version of each is on the classpath.
-			-->
-			<dependency>
-				<groupId>ca.uhn.hapi.fhir</groupId>
-				<artifactId>hapi-fhir-base</artifactId>
-				<version>${hapi.fhir.version}</version>
-			</dependency>
+				HAPI FHIR 8.10.1 needed two more pins here, for divergence inside its own tree that
+				Boot's BOM does not cover: hapi-fhir-base was reachable at 8.10.0 as well as
+				8.10.1, and the OpenTelemetry annotations at 2.26.1 as well as 2.27.0, with
+				nearest-wins picking the older one of each. 8.12.0 resolves both to a single
+				version on its own, so the pins are gone rather than kept as decoration.
+				requireUpperBoundDeps below is what makes that safe to do: if either divergence
+				returns in a later HAPI, the build fails and names it, which is the whole reason
+				the rule is configured.
 
-			<dependency>
-				<groupId>io.opentelemetry.instrumentation</groupId>
-				<artifactId>opentelemetry-instrumentation-annotations</artifactId>
-				<version>2.27.0</version>
-			</dependency>
+				Do not re-add a pin without checking it is still load-bearing — `mvn validate`
+				with it removed answers that in one run.
+			-->
 
 			<!--
 				Reachable at three versions once the validator and its Caffeine cache are on the
 				tree — 2.49.0 via caffeine, 2.41.0 via gson, 2.26.1 via guava — and nearest-wins
-				picked 2.41.0, below what caffeine asks for. Compile-time annotations only, so
-				nothing would have broken at runtime; pinned anyway, because the alternative is
-				teaching people to wave the enforcer through.
+				picks 2.41.0, below what caffeine asks for. Compile-time annotations only, so
+				nothing would break at runtime; pinned anyway, because the alternative is teaching
+				people to wave the enforcer through.
+
+				Pinned to the current release rather than to caffeine's 2.49.0. Anything at or
+				above the highest requirement satisfies the rule, and for an annotations-only jar
+				with CLASS retention there is nothing on the runtime side to be compatible with.
 			-->
 			<dependency>
 				<groupId>com.google.errorprone</groupId>
 				<artifactId>error_prone_annotations</artifactId>
-				<version>2.49.0</version>
+				<version>2.50.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -119,12 +121,6 @@
 					<artifactId>spring-boot-starter-jackson</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-			<version>${spring.boot.version}</version>
 		</dependency>
 
 		<!-- JdbcTemplate and the Hikari pool behind GStandaardJdbcConfig. -->
@@ -200,13 +196,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
-			<version>7.1.1</version>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<version>${junit.version}</version>
@@ -263,7 +252,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.6.2</version>
+				<version>3.6.3</version>
 				<executions>
 					<execution>
 						<id>enforce-dependency-versions</id>

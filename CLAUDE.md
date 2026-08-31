@@ -35,7 +35,7 @@ failure that otherwise surfaces as a Java stack trace with no mention of gems. S
 
 ## Stack
 
-Java 25, Spring Boot 4.1.1, HAPI FHIR 8.10.1, Maven. Matches the house backend convention
+Java 25, Spring Boot 4.1.1, HAPI FHIR 8.12.0, Maven. Matches the house backend convention
 (`formularium-api`, `nhg-formularium-adapter`, `gstandaard-jar`): **no Spring Boot parent
 POM**, explicit versions via properties, package `nl.digitalis.*`, tabs for indentation.
 
@@ -55,7 +55,8 @@ all* below.
 Request flow, and the one place each concern lives:
 
 ```
-HTTP  →  SecurityConfig / CredentialsResolver   practiceId + licenseKey off the Basic header
+HTTP  →  BasicAuthenticationFilter              practiceId + licenseKey off the Basic header
+      →  CredentialsResolver                   …and back off the thread, for the providers
       →  server/*Provider                        HAPI @Operation methods
       →  validation/ProfileValidator             Parameters       → 400 if it fails its profile
       →  fhir/SessionParametersMapper            Parameters       → internal model
@@ -260,6 +261,21 @@ register before editing one.
 the session with a 400 instead of being dropped from the list. Surveillance over an incomplete
 list answers "no interaction found" — a false negative a prescriber cannot distinguish from a
 genuine all-clear. Do not soften this into a warning without a clinical decision behind it.
+
+**Authentication is a servlet filter, and Spring Security was removed on purpose.** What this
+interface authenticates is "is there a well-formed practice id and license key on the request" —
+Prescriptor holds the licence administration and is the authority on whether they are a real pair,
+so there is no user store, no roles, no session and no CSRF surface. Spring Security expressed that
+in an `AuthenticationProvider`, a `ProviderManager` with credential erasure switched off, a filter
+chain and a `SecurityContextHolder`, to carry two strings from a header to `CredentialsResolver`.
+`auth/BasicAuthenticationFilter` does it in one readable class and takes six jars with it.
+
+Two things to keep if you touch it. The 401 carries an `OperationOutcome` body — Spring Security's
+did not, and a rejection before the servlet has no more right than any other error to be the one
+un-parseable response. And `CurrentCredentials` is a thread-local, which is safe only because
+nothing here dispatches asynchronously; if that changes, the failure is a request served with
+another request's licence key, so move the credentials onto the request rather than making the
+holder cleverer.
 
 **Errors must be `OperationOutcome`.** Throw HAPI's `BaseServerResponseException` subclasses
 and let the server render them. Use `error/UnauthorizedException` rather than HAPI's

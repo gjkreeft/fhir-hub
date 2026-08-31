@@ -191,6 +191,89 @@ class FhirHubIntegrationTest {
 		assertThat(response.headers().firstValue("WWW-Authenticate")).get().asString().startsWith("Basic");
 	}
 
+	/**
+	 * The rejection before the servlet is a FHIR resource like every other error this API returns.
+	 * Spring Security answered with an empty body; an integrator with one error handler had to
+	 * special-case exactly the response that means "you are not who you said you were".
+	 */
+	@Test
+	void rendersAnUnauthenticatedRequestAsAnOperationOutcome() {
+		HttpResponse<String> response = getAnonymous("/fhir/evs/$session-result?session=x");
+
+		assertThat(response.statusCode()).isEqualTo(401);
+		assertThat(response.headers().firstValue("Content-Type")).get().asString()
+				.contains("application/fhir+json");
+
+		OperationOutcome outcome = parser.parseResource(OperationOutcome.class, response.body());
+		assertThat(outcome.getIssueFirstRep().getCode()).isEqualTo(OperationOutcome.IssueType.SECURITY);
+		assertThat(outcome.getIssueFirstRep().getDiagnostics()).contains("practice id");
+	}
+
+	/**
+	 * Everything the header can be other than a usable credential. None of these reaches an
+	 * operation, and none of them is distinguished in the response: a caller learns that the
+	 * credential was not accepted, not which part of it this service could read.
+	 */
+	@Test
+	void refusesAnythingThatIsNotAWellFormedBasicCredential() {
+		assertThat(statusWithAuthorization(null)).isEqualTo(401);
+		assertThat(statusWithAuthorization("Bearer some-token")).as("another scheme").isEqualTo(401);
+		assertThat(statusWithAuthorization("Basic")).as("no credential at all").isEqualTo(401);
+		assertThat(statusWithAuthorization("Basic !!not-base64!!")).as("undecodable").isEqualTo(401);
+		assertThat(statusWithAuthorization("Basic " + encode("no-colon-here"))).as("no separator").isEqualTo(401);
+		assertThat(statusWithAuthorization("Basic " + encode(":key-only"))).as("blank practice id").isEqualTo(401);
+		assertThat(statusWithAuthorization("Basic " + encode("practice-only:"))).as("blank key").isEqualTo(401);
+		assertThat(statusWithAuthorization("Basic " + encode("  :  "))).as("both blank").isEqualTo(401);
+	}
+
+	/** RFC 7617 splits on the first colon: a user-id cannot contain one, a password can. */
+	@Test
+	void acceptsALicenseKeyContainingAColon() {
+		stub("open-session-response.xml");
+
+		HttpResponse<String> response = send(HttpRequest
+				.newBuilder(URI.create(url("/fhir/evs/$formulary-session")))
+				.header("Authorization", "Basic " + encode("practice-1:key:with:colons"))
+				.header("Content-Type", "application/fhir+json")
+				.POST(HttpRequest.BodyPublishers.ofString(
+						parser.encodeResourceToString(sessionParameters())))
+				.build());
+
+		assertThat(response.statusCode()).isEqualTo(200);
+		assertThat(prescriptor.findAll(postRequestedFor(anyUrl())).getFirst().getBodyAsString())
+				.contains("<name>LicenseKey</name><value><string>key:with:colons</string></value>");
+	}
+
+	/** The scheme name is case-insensitive; some clients send it lowercase. */
+	@Test
+	void acceptsTheSchemeInAnyCase() {
+		stub("open-session-response.xml");
+
+		HttpResponse<String> response = send(HttpRequest
+				.newBuilder(URI.create(url("/fhir/evs/$formulary-session")))
+				.header("Authorization", "basic " + encode(
+						Fixtures.CREDENTIALS.practiceId() + ":" + Fixtures.CREDENTIALS.licenseKey()))
+				.header("Content-Type", "application/fhir+json")
+				.POST(HttpRequest.BodyPublishers.ofString(
+						parser.encodeResourceToString(sessionParameters())))
+				.build());
+
+		assertThat(response.statusCode()).isEqualTo(200);
+	}
+
+	private int statusWithAuthorization(String header) {
+		HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url("/fhir/evs/$session-result?session=x")));
+		if (header != null) {
+			request = request.header("Authorization", header);
+		}
+
+		return send(request.GET().build()).statusCode();
+	}
+
+	private static String encode(String pair) {
+		return Base64.getEncoder().encodeToString(pair.getBytes(StandardCharsets.UTF_8));
+	}
+
 	/** An upstream fault is a credential problem, and must surface as a FHIR OperationOutcome. */
 	@Test
 	void rendersAnUpstreamFaultAsAnOperationOutcome() {

@@ -1,58 +1,39 @@
 package nl.digitalis.fhirhub.config;
 
-import java.util.List;
-
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
 
-import nl.digitalis.fhirhub.auth.PassThroughAuthenticationProvider;
+import ca.uhn.fhir.context.FhirContext;
+import nl.digitalis.fhirhub.auth.BasicAuthenticationFilter;
 
 /**
- * HTTP Basic authentication.
+ * Registers HTTP Basic authentication in front of the FHIR servlet.
  *
- * <p>Basic is the starting point rather than the destination: the credentials are the existing
- * practice id and license key, so no host has to be issued anything new to migrate off the
- * JSON interface. SMART-on-FHIR / OAuth 2.0 is the upgrade path, and slots in here without
- * touching anything downstream of {@code CredentialsResolver}.
+ * <p>A servlet filter rather than Spring Security. The authentication this interface performs is
+ * "is there a well-formed practice id and license key on the request" — Prescriptor is the
+ * authority on whether they are a real pair — so there is no user store, no roles, no session and
+ * no CSRF surface. Spring Security modelled that in an {@code AuthenticationProvider}, a
+ * {@code ProviderManager} with credential erasure switched off, a filter chain and a
+ * {@code SecurityContextHolder}, all to carry two strings from a header to
+ * {@code CredentialsResolver}. The filter does the same in one class you can read end to end, and
+ * takes {@code spring-boot-starter-security} and its 6 jars off the tree with it.
+ *
+ * <p>Scoped to the FHIR base, which is everything this application serves. Note the consequence:
+ * a path outside it is now a 404 from the container rather than a 401, where Spring Security's
+ * {@code anyRequest().authenticated()} challenged first and answered later.
  */
 @Configuration
 public class SecurityConfig {
 
 	@Bean
-	SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authenticationManager)
-			throws Exception {
-		return http
-				// No browser clients and no cookies: every request carries its own credentials.
-				.csrf(csrf -> csrf.disable())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authenticationManager(authenticationManager)
-				.authorizeHttpRequests(requests -> requests
-						// CapabilityStatement discovery is unauthenticated: integrators need to
-						// read what the server supports before they have credentials for it.
-						.requestMatchers(FhirConfig.FHIR_BASE + "/metadata").permitAll()
-						// The CapabilityStatement links each operation to an OperationDefinition,
-						// so those links have to be readable by the same anonymous integrator.
-						// Read-only metadata about the interface, not about any patient.
-						.requestMatchers(HttpMethod.GET, FhirConfig.FHIR_BASE + "/OperationDefinition/**").permitAll()
-						.requestMatchers("/actuator/health/**").permitAll()
-						.anyRequest().authenticated())
-				.httpBasic(Customizer.withDefaults())
-				.build();
-	}
+	FilterRegistrationBean<BasicAuthenticationFilter> basicAuthentication(FhirContext fhirContext) {
+		FilterRegistrationBean<BasicAuthenticationFilter> registration = new FilterRegistrationBean<>(
+				new BasicAuthenticationFilter(fhirContext, FhirConfig.FHIR_BASE));
 
-	@Bean
-	AuthenticationManager authenticationManager(PassThroughAuthenticationProvider provider) {
-		ProviderManager manager = new ProviderManager(List.of(provider));
-		// The license key has to survive authentication: it is forwarded to Prescriptor.
-		manager.setEraseCredentialsAfterAuthentication(false);
+		registration.addUrlPatterns(FhirConfig.FHIR_BASE + "/*");
+		registration.setName("basic-authentication");
 
-		return manager;
+		return registration;
 	}
 }
