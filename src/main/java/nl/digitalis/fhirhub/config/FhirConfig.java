@@ -23,7 +23,18 @@ import nl.digitalis.fhirhub.server.BaseProvider;
 @Configuration
 public class FhirConfig {
 
-	public static final String FHIR_BASE = "/fhir";
+	/**
+	 * The service base URL, and the reason it carries a name rather than being {@code /fhir}.
+	 *
+	 * <p>FHIR gives an operation three places to live — {@code [base]/$op},
+	 * {@code [base]/[Type]/$op} and {@code [base]/[Type]/[id]/$op} — and reserves the path space
+	 * under a base for resource type names. So a second contract on this host cannot be a segment
+	 * inside one base: {@code /fhir/evs/$formulary-session} under a base of {@code /fhir} parses as
+	 * a type-level operation on a resource type called {@code evs}, and there is no such type.
+	 * Separate contracts are separate bases, each with its own {@code metadata}, which is the shape
+	 * a medication-surveillance endpoint at {@code /fhir/surveillance} will take.
+	 */
+	public static final String FHIR_BASE = "/fhir/evs";
 
 	/**
 	 * A FhirContext is expensive to build and cheap to share; one per application is the
@@ -76,7 +87,7 @@ public class FhirConfig {
 			registerProviders(providers);
 			// HAPI would otherwise announce itself as "HAPI FHIR Server" at its own version,
 			// which answers a question nobody asked. What an integrator needs from
-			// GET /fhir/metadata is which release of the published specification this deployment
+			// GET /fhir/evs/metadata is which release of the published specification this deployment
 			// implements: the change policy tells them to check it before sending a parameter
 			// introduced in a later one, because inbound slicing is closed and a name this
 			// deployment does not know is a 400 rather than an ignored element.

@@ -38,16 +38,16 @@
     </a>
     <ul class="dropdown-menu">
       <li>
-        <a href="metadata.html">GET /fhir/metadata</a>
+        <a href="metadata.html">GET /fhir/evs/metadata</a>
       </li>
       <li>
-        <a href="formulary-session.html">POST /fhir/$formulary-session</a>
+        <a href="formulary-session.html">POST /fhir/evs/$formulary-session</a>
       </li>
       <li>
-        <a href="createrx-session.html">POST /fhir/$createrx-session</a>
+        <a href="createrx-session.html">POST /fhir/evs/$createrx-session</a>
       </li>
       <li>
-        <a href="session-result.html">GET /fhir/$session-result</a>
+        <a href="session-result.html">GET /fhir/evs/$session-result</a>
       </li>
     </ul>
   </li>

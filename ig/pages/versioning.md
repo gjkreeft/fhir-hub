@@ -13,7 +13,7 @@ None of the codings provided are in the value set 'ICPC-1 NL'
 
 The running service does not carry a version anywhere in a request or a response: none in the
 path, none in the payload, none in a header. A deployment implements one release of this guide,
-and the way to ask which is `GET /fhir/metadata` — the `CapabilityStatement` reports it as
+and the way to ask which is `GET /fhir/evs/metadata` — the `CapabilityStatement` reports it as
 `software.version`, with `implementation.description` naming it alongside the canonical. That call
 is unauthenticated, so you can check it before you hold credentials.
 
@@ -55,6 +55,15 @@ Note that a patch can still change the bytes of a `StructureDefinition`: an elem
 `description` and `comment` live inside the profile, so correcting the wording of one alters the
 artifact without altering a single rule. What a version number promises here is about behaviour,
 not about checksums — if you need bytes that cannot move, pin the versioned path.
+
+**The base URL is outside this table.** The grades above are about payloads, and moving the
+endpoints breaks every caller without altering a single one. Nothing in a profile records the base
+URL, so a validator cannot warn you and the version number cannot carry the news. A move like that
+is announced in the
+[Changelog](changelog.html) under its own **Breaking** heading and agreed with you before it goes
+out; if a deployment ever serves both the old base and the new one at once, the changelog says for
+how long. Note that a base URL and a canonical are different things: the canonicals in your
+payloads are identifiers rather than addresses, and they do not move when the service does.
 
 Two consequences worth stating outright, because they are the ones that surprise people:
 

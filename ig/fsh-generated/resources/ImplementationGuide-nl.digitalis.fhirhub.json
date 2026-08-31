@@ -304,22 +304,22 @@
         },
         {
           "nameUrl": "metadata.html",
-          "title": "GET /fhir/metadata",
+          "title": "GET /fhir/evs/metadata",
           "generation": "markdown"
         },
         {
           "nameUrl": "formulary-session.html",
-          "title": "POST /fhir/$formulary-session",
+          "title": "POST /fhir/evs/$formulary-session",
           "generation": "markdown"
         },
         {
           "nameUrl": "createrx-session.html",
-          "title": "POST /fhir/$createrx-session",
+          "title": "POST /fhir/evs/$createrx-session",
           "generation": "markdown"
         },
         {
           "nameUrl": "session-result.html",
-          "title": "GET /fhir/$session-result",
+          "title": "GET /fhir/evs/$session-result",
           "generation": "markdown"
         },
         {

@@ -47,13 +47,13 @@ pages:
   authentication.md:
     title: Authentication
   metadata.md:
-    title: GET /fhir/metadata
+    title: GET /fhir/evs/metadata
   formulary-session.md:
-    title: POST /fhir/$formulary-session
+    title: POST /fhir/evs/$formulary-session
   createrx-session.md:
-    title: POST /fhir/$createrx-session
+    title: POST /fhir/evs/$createrx-session
   session-result.md:
-    title: GET /fhir/$session-result
+    title: GET /fhir/evs/$session-result
   profiles.md:
     title: Profiles
   code-systems.md:
@@ -85,10 +85,10 @@ menu:
     Authentication: authentication.html
     Moving from the JSON API: migration.html
   Operations:
-    GET /fhir/metadata: metadata.html
-    POST /fhir/$formulary-session: formulary-session.html
-    POST /fhir/$createrx-session: createrx-session.html
-    GET /fhir/$session-result: session-result.html
+    GET /fhir/evs/metadata: metadata.html
+    POST /fhir/evs/$formulary-session: formulary-session.html
+    POST /fhir/evs/$createrx-session: createrx-session.html
+    GET /fhir/evs/$session-result: session-result.html
   Payloads:
     Profiles: profiles.html
     Code systems: code-systems.html

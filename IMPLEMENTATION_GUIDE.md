@@ -21,10 +21,10 @@ endpoint with its input and output specification.
 - [Global flow](#global-flow)
 - [Conventions](#conventions)
 - [Authentication](#authentication)
-- [`GET /fhir/metadata`](#get-fhirmetadata)
-- [`POST /fhir/$formulary-session`](#post-fhirformulary-session)
-- [`POST /fhir/$createrx-session`](#post-fhircreaterx-session)
-- [`GET /fhir/$session-result`](#get-fhirsession-result)
+- [`GET /fhir/evs/metadata`](#get-fhirevsmetadata)
+- [`POST /fhir/evs/$formulary-session`](#post-fhirevsformulary-session)
+- [`POST /fhir/evs/$createrx-session`](#post-fhirevscreaterx-session)
+- [`GET /fhir/evs/$session-result`](#get-fhirevssession-result)
 - [Lab determinations](#lab-determinations)
 - [Profiles](#profiles)
 - [Code systems](#code-systems)
@@ -105,12 +105,12 @@ token to obtain and nothing to refresh. And a licence change takes effect on the
 401 that appears without a code change is worth checking with Digitalis before you debug your
 client.
 
-Unauthenticated paths: `GET /fhir/metadata`, `GET /fhir/OperationDefinition/**` and
+Unauthenticated paths: `GET /fhir/evs/metadata`, `GET /fhir/evs/OperationDefinition/**` and
 `GET /actuator/health/**` — the discovery documents, so you can read what the interface accepts
 before your credentials are issued. Everything else requires the header; a missing or malformed one
 is a 401 with `WWW-Authenticate: Basic`.
 
-## `GET /fhir/metadata`
+## `GET /fhir/evs/metadata`
 
 The FHIR CapabilityStatement. Unauthenticated, so you can read it before your credentials are
 issued.
@@ -119,7 +119,7 @@ issued.
 `createrx-session` and `session-result`.
 
 ```bash
-curl -sS 'http://localhost:8080/fhir/metadata?_format=json'
+curl -sS 'http://localhost:8080/fhir/evs/metadata?_format=json'
 ```
 
 **`software.version` is the release of this specification the deployment implements**, e.g.
@@ -130,7 +130,7 @@ close the list of names. `implementation.description` names the same release alo
 canonical.
 
 The statement links each operation to a generated `OperationDefinition`:
-`/fhir/OperationDefinition/-s-formulary-session`, `…/-s-createrx-session` and
+`/fhir/evs/OperationDefinition/-s-formulary-session`, `…/-s-createrx-session` and
 `…/-s-session-result`. Each describes **every** input parameter with `use: in`, a `type` and a
 cardinality, so a request can be generated from the definition alone — `prescription` reads
 `max: "0"` on `$formulary-session` and `max: "1"` on `$createrx-session`. Those URLs are readable
@@ -140,7 +140,7 @@ The `OperationDefinition`s give you the parameter list; the [profiles](#profiles
 to be true *inside* each parameter. Use the CapabilityStatement to confirm the operations and the
 FHIR version, and this document for the payloads.
 
-## `POST /fhir/$formulary-session`
+## `POST /fhir/evs/$formulary-session`
 
 Opens a **formulary** session: the care provider picks a treatment for a stated reason for
 encounter.
@@ -203,7 +203,7 @@ determinations medication surveillance reads are accepted; see
 [Lab determinations](#lab-determinations) for the list, the units and why it is closed.
 
 ```jsonc
-POST /fhir/$formulary-session
+POST /fhir/evs/$formulary-session
 Content-Type: application/fhir+json
 Authorization: Basic ...
 
@@ -285,7 +285,7 @@ point at, and do not expect either to influence the session. See
 Treat `url` as opaque: redirect to it unchanged. Its shape is Prescriptor's and is not part of this
 contract, so do not parse the session id back out of it — `sessionId` is where it lives.
 
-## `POST /fhir/$createrx-session`
+## `POST /fhir/evs/$createrx-session`
 
 Opens a **CreateRx** session: prescribing without a formulary lookup, optionally starting from a
 prescription the host already holds.
@@ -342,7 +342,7 @@ through verbatim in both directions and derives no structured dosing. See
 Sending `prescription` to `$formulary-session` is a 400. Output is the same
 `Parameters{sessionId, url}` as above.
 
-## `GET /fhir/$session-result`
+## `GET /fhir/evs/$session-result`
 
 Fetches what a finished session produced.
 
@@ -357,7 +357,7 @@ Fetches what a finished session produced.
 curl -sS \
   -u 'practice-123:licence-key' \
   -H 'Accept: application/fhir+json' \
-  'http://localhost:8080/fhir/$session-result?session=sess-abc-123'
+  'http://localhost:8080/fhir/evs/$session-result?session=sess-abc-123'
 ```
 
 Quote the URL: unquoted, the shell expands `$session-result` and you request `/fhir/-result`.

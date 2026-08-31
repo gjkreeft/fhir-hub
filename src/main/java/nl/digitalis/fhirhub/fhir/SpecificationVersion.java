@@ -20,7 +20,7 @@ import ca.uhn.fhir.context.FhirContext;
  * which release it is running: that a new parameter name is additive for this service but a 400
  * for a host that starts sending it too early — the inbound slicing is closed — and that
  * validating against a release the deployment has moved past passes on the old rules. So
- * {@code GET /fhir/metadata} reports this number, and it is the answer to "which one are you".
+ * {@code GET /fhir/evs/metadata} reports this number, and it is the answer to "which one are you".
  *
  * <p>It is read off the profiles in the jar rather than declared here, because those are the
  * artifacts that decide what the service actually accepts. A number kept anywhere else would be a

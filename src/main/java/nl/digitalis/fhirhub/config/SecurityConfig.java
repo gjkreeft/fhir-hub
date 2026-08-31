@@ -36,11 +36,11 @@ public class SecurityConfig {
 				.authorizeHttpRequests(requests -> requests
 						// CapabilityStatement discovery is unauthenticated: integrators need to
 						// read what the server supports before they have credentials for it.
-						.requestMatchers("/fhir/metadata").permitAll()
+						.requestMatchers(FhirConfig.FHIR_BASE + "/metadata").permitAll()
 						// The CapabilityStatement links each operation to an OperationDefinition,
 						// so those links have to be readable by the same anonymous integrator.
 						// Read-only metadata about the interface, not about any patient.
-						.requestMatchers(HttpMethod.GET, "/fhir/OperationDefinition/**").permitAll()
+						.requestMatchers(HttpMethod.GET, FhirConfig.FHIR_BASE + "/OperationDefinition/**").permitAll()
 						.requestMatchers("/actuator/health/**").permitAll()
 						.anyRequest().authenticated())
 				.httpBasic(Customizer.withDefaults())

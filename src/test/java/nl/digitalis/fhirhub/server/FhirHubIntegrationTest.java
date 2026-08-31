@@ -98,7 +98,7 @@ class FhirHubIntegrationTest {
 	void opensAFormularySessionAndForwardsTheBasicCredentials() {
 		stub("open-session-response.xml");
 
-		HttpResponse<String> response = postFhir("/fhir/$formulary-session", sessionParameters());
+		HttpResponse<String> response = postFhir("/fhir/evs/$formulary-session", sessionParameters());
 
 		assertThat(response.statusCode()).isEqualTo(200);
 
@@ -139,7 +139,7 @@ class FhirHubIntegrationTest {
 		Parameters in = sessionParameters();
 		in.addParameter().setName(SessionParametersMapper.PARAM_MEDICATION).setResource(unknown);
 
-		HttpResponse<String> response = postFhir("/fhir/$formulary-session", in);
+		HttpResponse<String> response = postFhir("/fhir/evs/$formulary-session", in);
 
 		assertThat(response.statusCode()).isEqualTo(400);
 		OperationOutcome outcome = parser.parseResource(OperationOutcome.class, response.body());
@@ -158,7 +158,7 @@ class FhirHubIntegrationTest {
 		Parameters in = sessionParameters();
 		in.getParameter().removeIf(p -> SessionParametersMapper.PARAM_REASON.equals(p.getName()));
 
-		HttpResponse<String> response = postFhir("/fhir/$createrx-session", in);
+		HttpResponse<String> response = postFhir("/fhir/evs/$createrx-session", in);
 
 		assertThat(response.statusCode()).isEqualTo(200);
 		Parameters out = parser.parseResource(Parameters.class, response.body());
@@ -171,7 +171,7 @@ class FhirHubIntegrationTest {
 	void returnsTheSessionResultAsABundle() {
 		stub("request-result-response.xml");
 
-		HttpResponse<String> response = getFhir("/fhir/$session-result?session=sess-abc-123");
+		HttpResponse<String> response = getFhir("/fhir/evs/$session-result?session=sess-abc-123");
 
 		assertThat(response.statusCode()).isEqualTo(200);
 
@@ -185,7 +185,7 @@ class FhirHubIntegrationTest {
 
 	@Test
 	void rejectsAnUnauthenticatedRequest() {
-		HttpResponse<String> response = getAnonymous("/fhir/$session-result?session=x");
+		HttpResponse<String> response = getAnonymous("/fhir/evs/$session-result?session=x");
 
 		assertThat(response.statusCode()).isEqualTo(401);
 		assertThat(response.headers().firstValue("WWW-Authenticate")).get().asString().startsWith("Basic");
@@ -196,7 +196,7 @@ class FhirHubIntegrationTest {
 	void rendersAnUpstreamFaultAsAnOperationOutcome() {
 		stub("fault-response.xml");
 
-		HttpResponse<String> response = postFhir("/fhir/$formulary-session", sessionParameters());
+		HttpResponse<String> response = postFhir("/fhir/evs/$formulary-session", sessionParameters());
 
 		assertThat(response.statusCode()).isEqualTo(401);
 
@@ -208,7 +208,7 @@ class FhirHubIntegrationTest {
 	void rendersAnUnknownSessionAsAnOperationOutcome() {
 		stub("nil-response.xml");
 
-		HttpResponse<String> response = getFhir("/fhir/$session-result?session=gone");
+		HttpResponse<String> response = getFhir("/fhir/evs/$session-result?session=gone");
 
 		assertThat(response.statusCode()).isEqualTo(401);
 		OperationOutcome outcome = parser.parseResource(OperationOutcome.class, response.body());
@@ -220,7 +220,7 @@ class FhirHubIntegrationTest {
 		Parameters in = sessionParameters();
 		in.getParameter().removeIf(p -> SessionParametersMapper.PARAM_END_SESSION_URL.equals(p.getName()));
 
-		HttpResponse<String> response = postFhir("/fhir/$formulary-session", in);
+		HttpResponse<String> response = postFhir("/fhir/evs/$formulary-session", in);
 
 		assertThat(response.statusCode()).isEqualTo(400);
 		OperationOutcome outcome = parser.parseResource(OperationOutcome.class, response.body());
@@ -230,7 +230,7 @@ class FhirHubIntegrationTest {
 	/** Integrators must be able to discover the operations before they hold credentials. */
 	@Test
 	void servesAnUnauthenticatedCapabilityStatement() {
-		HttpResponse<String> response = getAnonymous("/fhir/metadata");
+		HttpResponse<String> response = getAnonymous("/fhir/evs/metadata");
 
 		assertThat(response.statusCode()).isEqualTo(200);
 		assertThat(response.body())
@@ -249,7 +249,7 @@ class FhirHubIntegrationTest {
 	@Test
 	void reportsTheSpecificationReleaseInTheCapabilityStatement() {
 		CapabilityStatement statement = parser.parseResource(CapabilityStatement.class,
-				getAnonymous("/fhir/metadata").body());
+				getAnonymous("/fhir/evs/metadata").body());
 
 		assertThat(statement.getSoftware().getName()).isEqualTo("Digitalis fhir-hub");
 		assertThat(statement.getSoftware().getVersion())
@@ -267,7 +267,7 @@ class FhirHubIntegrationTest {
 	@Test
 	void servesTheAdvertisedOperationDefinitionsUnauthenticated() {
 		CapabilityStatement statement = parser.parseResource(CapabilityStatement.class,
-				getAnonymous("/fhir/metadata").body());
+				getAnonymous("/fhir/evs/metadata").body());
 
 		List<CapabilityStatementRestResourceOperationComponent> operations =
 				statement.getRestFirstRep().getOperation();
@@ -318,7 +318,7 @@ class FhirHubIntegrationTest {
 
 	private OperationDefinition operationDefinition(String code) {
 		CapabilityStatement statement = parser.parseResource(CapabilityStatement.class,
-				getAnonymous("/fhir/metadata").body());
+				getAnonymous("/fhir/evs/metadata").body());
 
 		String definition = statement.getRestFirstRep().getOperation().stream()
 				.filter(o -> code.equals(o.getName()))
@@ -340,7 +340,7 @@ class FhirHubIntegrationTest {
 		Parameters in = sessionParameters();
 		medicationStatementIn(in).setStatus(null);
 
-		HttpResponse<String> response = postFhir("/fhir/$formulary-session", in);
+		HttpResponse<String> response = postFhir("/fhir/evs/$formulary-session", in);
 
 		assertThat(response.statusCode()).isEqualTo(400);
 
@@ -355,7 +355,7 @@ class FhirHubIntegrationTest {
 	void acceptsAConformantPayloadDespiteUnresolvableCodeSystems() {
 		stub("open-session-response.xml");
 
-		HttpResponse<String> response = postFhir("/fhir/$formulary-session", sessionParameters());
+		HttpResponse<String> response = postFhir("/fhir/evs/$formulary-session", sessionParameters());
 
 		assertThat(response.statusCode())
 				.as("G-Standaard code systems cannot be expanded, and that is a warning")
@@ -373,7 +373,7 @@ class FhirHubIntegrationTest {
 	/** A browser ranks text/html first; the highlighter must answer it with HTML, not XML. */
 	@Test
 	void rendersTheCapabilityStatementAsHtmlForABrowser() {
-		HttpResponse<String> response = send(HttpRequest.newBuilder(URI.create(url("/fhir/metadata")))
+		HttpResponse<String> response = send(HttpRequest.newBuilder(URI.create(url("/fhir/evs/metadata")))
 				.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 				.GET().build());
 

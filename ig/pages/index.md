@@ -3,10 +3,10 @@
 ### The three calls
 
 ```
-POST   /fhir/$formulary-session        Parameters  ->  Parameters (sessionId, url)
-POST   /fhir/$createrx-session         Parameters  ->  Parameters (sessionId, url)
-GET    /fhir/$session-result?session=  ->  Bundle (MedicationRequest, Communication)
-GET    /fhir/metadata                  ->  CapabilityStatement (unauthenticated)
+POST   /fhir/evs/$formulary-session        Parameters  ->  Parameters (sessionId, url)
+POST   /fhir/evs/$createrx-session         Parameters  ->  Parameters (sessionId, url)
+GET    /fhir/evs/$session-result?session=  ->  Bundle (MedicationRequest, Communication)
+GET    /fhir/evs/metadata                  ->  CapabilityStatement (unauthenticated)
 ```
 
 That is the whole surface. There is no resource REST API and no search — see

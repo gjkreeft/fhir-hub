@@ -309,7 +309,7 @@ would enforce version-less profiles while the published package says `0.1.0`, an
 promises it does. `ig/scripts/stamp-version.mjs` puts it back and runs as part of `npm run sushi`;
 `IgCanonicalsTest.theProfilesCarryTheIgVersion` fails if someone runs `sushi .` directly.
 
-**`GET /fhir/metadata` reports the specification release, and that is load-bearing rather than
+**`GET /fhir/evs/metadata` reports the specification release, and that is load-bearing rather than
 decorative.** `SpecificationVersion` reads the version off a profile in the jar and `FhirConfig`
 puts it in `CapabilityStatement.software.version`; HAPI would otherwise announce itself as "HAPI
 FHIR Server" at HAPI's version. The change policy tells integrators to check it before sending a

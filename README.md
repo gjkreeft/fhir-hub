@@ -20,10 +20,10 @@ those specifications.
 3. The host polls for the result and receives the prescriptions and advice.
 
 ```
-POST   /fhir/$formulary-session        Parameters  ->  Parameters (sessionId, url)
-POST   /fhir/$createrx-session         Parameters  ->  Parameters (sessionId, url)
-GET    /fhir/$session-result?session=  ->  Bundle (MedicationRequest, Communication)
-GET    /fhir/metadata                  ->  CapabilityStatement (unauthenticated)
+POST   /fhir/evs/$formulary-session        Parameters  ->  Parameters (sessionId, url)
+POST   /fhir/evs/$createrx-session         Parameters  ->  Parameters (sessionId, url)
+GET    /fhir/evs/$session-result?session=  ->  Bundle (MedicationRequest, Communication)
+GET    /fhir/evs/metadata                  ->  CapabilityStatement (unauthenticated)
 ```
 
 `software.version` on that statement is the release of the published specification the deployment
@@ -60,7 +60,7 @@ SMART-on-FHIR / OAuth 2.0 is the upgrade path. It slots in at `SecurityConfig` a
 ## Opening a session
 
 ```jsonc
-POST /fhir/$formulary-session
+POST /fhir/evs/$formulary-session
 Content-Type: application/fhir+json
 Authorization: Basic ...
 
