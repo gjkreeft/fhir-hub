@@ -319,8 +319,8 @@ What it costs, measured rather than estimated:
 
 | | |
 | --- | --- |
-| Dependencies | **+79 MB**, fat jar 171 MB. 47 MB of that is the DSTU2/DSTU3/R4B/R5 models, for FHIR versions this service does not speak — they arrive via `org.hl7.fhir.convertors` and cannot be excluded without breaking the validator |
-| First validation | ~4.5 s, moved into startup by `FhirValidationConfig.warmUpValidator` so no request pays it. Startup goes from ~2 s to ~5 s |
+| Dependencies | **+44 MB and +27 jars**, fat jar 107 MB. 22 MB of that is the R5 and DSTU3 models, for FHIR versions this service does not speak: the validator converts what it validates up to R5, and `ValidationSupportUtils` switches over DSTU3 `ValueSet`s in one method. DSTU2, DSTU2016May and R4B are excluded in `pom.xml`, along with the IG Publisher's own dependencies — see the exclusion comments there |
+| First validation | ~3 s, moved into startup by `FhirValidationConfig.warmUpValidator` so no request pays it |
 | Each validation | ~70 ms, on the request path |
 
 That 70 ms is real overhead on an operation whose own work is one XML-RPC round trip. It buys

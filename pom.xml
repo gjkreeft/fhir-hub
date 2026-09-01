@@ -21,6 +21,8 @@
 		<mariadb.version>3.5.10</mariadb.version>
 		<h2.version>2.4.240</h2.version>
 		<hikari.version>7.0.2</hikari.version>
+		<!-- Boot 4.1.1's own Spring Framework version; keep them in step. -->
+		<spring.web.version>7.0.9</spring.web.version>
 		<jackson.version>2.22.2</jackson.version>
 	</properties>
 
@@ -106,22 +108,37 @@
 
 	<dependencies>
 
+		<!--
+			The DI container, @ConfigurationProperties binding and logging. Not
+			spring-boot-starter-web: that adds Spring MVC, and this application has no
+			@RestController, no @RequestMapping and no use for a DispatcherServlet — the FHIR
+			servlet is registered directly against the container. See the tomcat starter below.
+		-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter</artifactId>
 			<version>${spring.boot.version}</version>
-			<exclusions>
-				<!--
-					Jackson is taken from exactly one place: HAPI FHIR, which pins its own version
-					and serialises every /fhir/* response. Letting Boot's starter add a second
-					Jackson would put two versions of the same artifacts in the tree for Maven to
-					arbitrate. Nothing here needs Spring to serialise JSON.
-				-->
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-jackson</artifactId>
-				</exclusion>
-			</exclusions>
+		</dependency>
+
+		<!--
+			The embedded servlet container, and Boot's glue for starting one. HAPI's RestfulServer
+			is a jakarta.servlet.HttpServlet, so a container is not optional; what is optional is
+			the MVC stack that starter-web would bring with it.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<version>${spring.boot.version}</version>
+		</dependency>
+
+		<!--
+			RestClient, for the one outbound call this service makes. The only part of spring-web
+			in use; moving PrescriptorClient to the JDK's HttpClient would remove it.
+		-->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+			<version>${spring.web.version}</version>
 		</dependency>
 
 		<!--
@@ -142,12 +159,53 @@
 			<groupId>ca.uhn.hapi.fhir</groupId>
 			<artifactId>hapi-fhir-structures-r4</artifactId>
 			<version>${hapi.fhir.version}</version>
+			<exclusions>
+				<!--
+					org.hl7.fhir.utilities carries the reference validator's HTTP client and its XSLT
+					helper. Neither is reachable from this service.
+
+					okhttp backs org.hl7.fhir.utilities.http, whose only consumers outside that package
+					are the R5 REST client (r5/utils/client/network/FhirRequestBuilder), the package-cache
+					and terminology clients, and the validator CLI. FhirValidationConfig builds a chain of
+					PrePopulated + Default + InMemoryTerminologyServer support and registers no remote
+					terminology service, so nothing constructs any of them — the profiles are read from the
+					jar and no request leaves the process. InstanceValidator's one reference into that
+					package is HTTPResultException, a plain exception class that stays behind.
+
+					Saxon is reached only from XsltUtilities, which nothing on this tree calls at all.
+					Excluding it takes org.xmlresolver with it; note the second exclusion on
+					hapi-fhir-validation below, which reaches the same jar by a second path.
+				-->
+				<exclusion>
+					<groupId>net.sf.saxon</groupId>
+					<artifactId>Saxon-HE</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okhttp3</groupId>
+					<artifactId>okhttp-jvm</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okio</groupId>
+					<artifactId>okio</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
 			<groupId>ca.uhn.hapi.fhir</groupId>
 			<artifactId>hapi-fhir-server</artifactId>
 			<version>${hapi.fhir.version}</version>
+			<exclusions>
+				<!--
+					Subscription email delivery. MailSvc is referenced by nothing but its own interface —
+					the code that would send is in hapi-fhir-jpaserver, which is not here, and a stateless
+					proxy has no subscriptions to deliver. Takes angus-mail and jakarta.activation with it.
+				-->
+				<exclusion>
+					<groupId>org.simplejavamail</groupId>
+					<artifactId>simple-java-mail</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!--
@@ -159,6 +217,87 @@
 			<groupId>ca.uhn.hapi.fhir</groupId>
 			<artifactId>hapi-fhir-validation</artifactId>
 			<version>${hapi.fhir.version}</version>
+			<exclusions>
+				<!--
+					The reference validator is packaged for the IG Publisher and the validator CLI, and
+					those tools' dependencies come with it. Each of these is reachable from exactly one
+					entry point that this service never calls; the build fails loudly if that stops being
+					true, because warmUpValidator runs a real validation at startup and a NoClassDefFoundError
+					is an Error, not the RuntimeException that runner catches.
+
+					  plantuml  net.sourceforge.plantuml, 16.5 MB — r5/renderers/ExampleScenarioRenderer
+					  jgit      org.eclipse.jgit, 3.3 MB      — r5/utils/NPMPackageGenerator
+					  sqlite    org.xerial:sqlite-jdbc, 11.4 MB — convertors/misc/{OMOPImporter,CPTImporter}
+					  Saxon     net.sf.saxon, 7.1 MB          — utilities/XsltUtilities; see structures-r4
+
+					What is NOT excluded, and was tried: thymeleaf (hapi-fhir-base uses its Validate class
+					in ValidationSupportContext), icu4j (InstanceValidator formats plural messages through
+					I18nBase.getPluralKey), and nimbus-jose-jwt (InstanceValidator.checkSpecials needs it to
+					validate any Bundle). All three fail the test suite within a second of being removed.
+				-->
+				<exclusion>
+					<groupId>net.sourceforge.plantuml</groupId>
+					<artifactId>plantuml-mit</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.jgit</groupId>
+					<artifactId>org.eclipse.jgit</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.xerial</groupId>
+					<artifactId>sqlite-jdbc</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>net.sf.saxon</groupId>
+					<artifactId>Saxon-HE</artifactId>
+				</exclusion>
+							<!--
+					Three of the five FHIR versions the reference validator carries. It is written
+					against R5 internally and converts what it validates up to it, so R4 and R5 are
+					both live, and DSTU3 is as well: ValidationSupportUtils.extractCodeSystemForCode
+					switches over dstu3/r4/r5 ValueSets in one method and fails to link without it.
+
+					DSTU2, DSTU2016May and R4B are reached only from per-version branches of
+					CommonCodeSystemsTerminologyService and InMemoryTerminologyServerValidationSupport,
+					both of which are in this service's chain but dispatch on the FhirContext's
+					version. FhirConfig creates exactly one context, FhirContext.forR4(), so those
+					branches are unreachable by construction rather than merely untested. 21 MB.
+
+					If a second FhirContext at another version is ever introduced, these come back —
+					and the failure is a NoClassDefFoundError from inside terminology validation,
+					not a compile error.
+				-->
+				<exclusion>
+					<groupId>ca.uhn.hapi.fhir</groupId>
+					<artifactId>org.hl7.fhir.dstu2</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ca.uhn.hapi.fhir</groupId>
+					<artifactId>org.hl7.fhir.dstu2016may</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ca.uhn.hapi.fhir</groupId>
+					<artifactId>org.hl7.fhir.r4b</artifactId>
+				</exclusion>
+				<!--
+					The XmlPull parser, and the exclusion with the least margin — see
+					XhtmlNarrativeParsingTest, which is what makes it safe to keep. Its classes are
+					referenced two thousand times across the validator, almost all of it from
+					org.hl7.fhir.r5.formats.XmlParser, which parses R5 XML text and is not how
+					anything gets parsed here: HAPI reads inbound XML with StAX and the validator
+					walks the element model over DOM.
+
+					Excluded for its paperwork rather than its 0.4 MB. org.ogce:xpp3 is a
+					re-publication of a project last released in 2005, it declares no licence in
+					its POM, and it carries jakarta-regexp 1.4, which declares none either. Two
+					SOUP items with no identifiable supplier and no anomaly list to review is a
+					harder thing to answer for under IEC 62304 7.1.2 than anything they do.
+				-->
+				<exclusion>
+					<groupId>org.ogce</groupId>
+					<artifactId>xpp3</artifactId>
+				</exclusion>
+</exclusions>
 		</dependency>
 
 		<!--
@@ -270,10 +409,113 @@
 							<rules>
 								<requireUpperBoundDeps/>
 								<banDuplicatePomDependencyVersions/>
+								<!--
+									Jackson is taken from exactly one place: HAPI FHIR, which pins
+									its own version and serialises every /fhir/* response. Nothing
+									here needs Spring to serialise JSON, and a second Jackson in
+									the tree is two versions of the same artifacts for Maven to
+									arbitrate — the collision CLAUDE.md describes, which surfaces
+									as a NoClassDefFoundError at RestClient construction rather
+									than at the boundary that caused it.
+
+									This used to be an <exclusion> on spring-boot-starter-web. That
+									starter is gone, and nothing on the tree pulls Boot's Jackson
+									starter today, so the exclusion had nothing to hang on. A ban
+									keeps the guarantee anyway: if a Boot upgrade or a new starter
+									reintroduces it, the build fails and says why.
+								-->
+								<bannedDependencies>
+									<excludes>
+										<exclude>org.springframework.boot:spring-boot-starter-jackson</exclude>
+									</excludes>
+									<message>
+										Jackson comes from HAPI FHIR only. Something reintroduced
+										spring-boot-starter-jackson: exclude it there, or read the
+										Jackson note in CLAUDE.md before changing this rule.
+									</message>
+								</bannedDependencies>
+
+								<!--
+									The IG Publisher's dependencies, excluded from the three HAPI
+									artifacts that reach them today. A ban as well as the
+									exclusions, because Maven prunes per path: an exclusion only
+									removes the jar from the subtree it is written on, and which
+									subtree reaches which jar is HAPI's business, not ours. Four of
+									these needed an exclusion on one dependency and would have
+									returned through another after an upgrade.
+
+									If this rule fires, the artifact came back by a new path. Add
+									the exclusion there — do not relax the rule — and check the
+									exclusion comments in the dependencies above first, because
+									they record why each one is safe to remove and what happens
+									when it is not.
+								-->
+								<bannedDependencies>
+									<excludes>
+										<exclude>net.sourceforge.plantuml:plantuml-mit</exclude>
+										<exclude>org.eclipse.jgit:org.eclipse.jgit</exclude>
+										<exclude>org.xerial:sqlite-jdbc</exclude>
+										<exclude>net.sf.saxon:Saxon-HE</exclude>
+										<exclude>com.squareup.okhttp3:*</exclude>
+										<exclude>com.squareup.okio:*</exclude>
+										<exclude>org.simplejavamail:*</exclude>
+										<exclude>ca.uhn.hapi.fhir:org.hl7.fhir.dstu2</exclude>
+										<exclude>ca.uhn.hapi.fhir:org.hl7.fhir.dstu2016may</exclude>
+										<exclude>ca.uhn.hapi.fhir:org.hl7.fhir.r4b</exclude>
+										<exclude>org.ogce:xpp3</exclude>
+										<exclude>jakarta-regexp:jakarta-regexp</exclude>
+									</excludes>
+									<message>
+										A dependency of the IG Publisher and the validator CLI is
+										back on the runtime classpath. Nothing in a stateless proxy
+										renders diagrams, builds NPM packages, imports OMOP, runs
+										XSLT, sends mail or makes an HTTP call from the validator.
+										Exclude it on whichever HAPI dependency now reaches it.
+									</message>
+								</bannedDependencies>
 							</rules>
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+
+			<!--
+				The SBOM, and the input to the SOUP list. IEC 62304 wants every third-party item
+				that ships identified by supplier and version; MDCG 2019-16 and IEC 81001-5-1 want
+				that same list machine-readable so vulnerabilities can be tracked against it after
+				release. One generated file serves both, and generating it from the resolved tree
+				is the point — a hand-maintained SOUP list is wrong the first time a transitive
+				version moves, and nothing tells you.
+
+				Test-scope dependencies are deliberately excluded: SOUP is software that ships in
+				the device. WireMock, H2 and JUnit are development tools, which carry a tool
+				-selection obligation instead, not a SOUP one. Keeping them out of this file is
+				what makes that distinction auditable rather than asserted.
+			-->
+			<plugin>
+				<groupId>org.cyclonedx</groupId>
+				<artifactId>cyclonedx-maven-plugin</artifactId>
+				<version>2.9.1</version>
+				<executions>
+					<execution>
+						<id>sbom</id>
+						<phase>package</phase>
+						<goals>
+							<goal>makeBom</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<schemaVersion>1.6</schemaVersion>
+					<outputFormat>all</outputFormat>
+					<outputName>sbom</outputName>
+					<includeCompileScope>true</includeCompileScope>
+					<includeRuntimeScope>true</includeRuntimeScope>
+					<includeProvidedScope>false</includeProvidedScope>
+					<includeSystemScope>false</includeSystemScope>
+					<includeTestScope>false</includeTestScope>
+					<includeLicenseText>false</includeLicenseText>
+				</configuration>
 			</plugin>
 
 			<plugin>

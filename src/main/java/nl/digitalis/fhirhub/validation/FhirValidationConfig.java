@@ -5,7 +5,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
-import org.hl7.fhir.common.hapi.validation.support.CachingValidationSupport;
 import org.hl7.fhir.common.hapi.validation.support.CommonCodeSystemsTerminologyService;
 import org.hl7.fhir.common.hapi.validation.support.InMemoryTerminologyServerValidationSupport;
 import org.hl7.fhir.common.hapi.validation.support.PrePopulatedValidationSupport;
@@ -58,13 +57,17 @@ public class FhirValidationConfig {
 
 	@Bean
 	public FhirValidator fhirValidator(FhirContext fhirContext) throws IOException {
-		IValidationSupport chain = new CachingValidationSupport(new ValidationSupportChain(
+		// No CachingValidationSupport wrapper: ValidationSupportChain caches on its own since
+		// HAPI 8, with CacheConfiguration.defaultValues(), and the wrapper is deprecated for
+		// removal. It still resolves its cache through the ServiceLoader, so
+		// hapi-fhir-caching-caffeine stays a dependency — see the POM.
+		IValidationSupport chain = new ValidationSupportChain(
 				igProfiles(fhirContext),
 				new DefaultProfileValidationSupport(fhirContext),
 				new InMemoryTerminologyServerValidationSupport(fhirContext),
 				new CommonCodeSystemsTerminologyService(fhirContext),
 				new SnapshotGeneratingValidationSupport(fhirContext),
-				unknownCodeSystemsAreAWarning(fhirContext)));
+				unknownCodeSystemsAreAWarning(fhirContext));
 
 		FhirValidator validator = fhirContext.newValidator();
 		validator.registerValidatorModule(new FhirInstanceValidator(chain));

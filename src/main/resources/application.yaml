@@ -7,9 +7,11 @@ spring:
     banner-mode: "off"
 
 server:
+  # No `error:` block: Boot's error page comes from Spring MVC, which is not on the classpath —
+  # this application registers the FHIR servlet directly and has no DispatcherServlet. Errors
+  # inside /fhir/evs/ are rendered as OperationOutcome by HAPI; a request to any other path gets
+  # the container's own 404.
   port: ${PORT:8080}
-  error:
-    include-message: never
 
 prescriptor:
   # The XML-RPC dispatch endpoint. Validated at startup; the application fails fast if absent.

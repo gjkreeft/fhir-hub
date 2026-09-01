@@ -19,6 +19,7 @@ mvn test                 # 103 tests; no network and no database — WireMock st
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
+node tools/soup-list.mjs # docs/SOUP.md from target/sbom.json; run after `mvn package`
 docker compose up --build
 
 cd ig && npm run sushi   # rebuild the profiles (SUSHI + the version stamp)
@@ -202,8 +203,70 @@ classpath would otherwise decide the shape of every XML-RPC request. `XmlWriter.
 zero-length text event before the end tag to pin one form under both providers. Deleting that
 line makes the wire format depend on dependency resolution.
 
-**The cost is measured, in README under *Enforcement*:** +79 MB of dependencies, ~4.5 s for the
-first validation (moved into startup by `warmUpValidator`), ~70 ms per request after that.
+**The cost is measured, in README under *Enforcement*:** +44 MB and +27 jars of dependencies, ~3 s
+for the first validation (moved into startup by `warmUpValidator`), ~70 ms per request after that.
+
+**Nine of the validator's dependencies are excluded, and the exclusions are load-bearing.** The
+reference validator is packaged for the IG Publisher and the validator CLI, so it arrives with a
+diagram renderer, a git client, an XSLT processor, an HTTP client, a SQLite driver and an SMTP
+client. Each is reachable from exactly one entry point this service never calls — the four in
+`hapi-fhir-validation` and `hapi-fhir-structures-r4` are named with their entry points in the
+`<exclusions>` comments in `pom.xml`. That is 66 MB and 23 jars off the tree, and the point is
+the jars rather than the megabytes: a dependency nobody calls is still a dependency somebody has
+to answer a CVE about.
+
+Three that look identical are *not* excluded, and were each tried: **thymeleaf**
+(`hapi-fhir-base` calls its `Validate` from `ValidationSupportContext`, on every validation),
+**icu4j** (`InstanceValidator` formats plural messages through `I18nBase.getPluralKey`) and
+**nimbus-jose-jwt** (`InstanceValidator.checkSpecials` needs it to validate any `Bundle`). Static
+analysis missed all three — the reference is in a different jar from the one that declares the
+dependency in two of the cases — so verify by running the suite, not by grepping. `mvn test` is
+the check: `warmUpValidator` performs a real validation at startup, so a missing class fails the
+Spring context rather than a request. Note that runner catches `RuntimeException` and a
+`NoClassDefFoundError` is an `Error`, which is what makes it fail loudly instead of degrading to
+a slow first request.
+
+**Three of the five FHIR versions come out too.** The validator converts what it validates up to
+R5, so R4 and R5 are live; DSTU3 is as well, because `ValidationSupportUtils.extractCodeSystemForCode`
+switches over dstu3/r4/r5 `ValueSet`s in one method and will not link without it. DSTU2, DSTU2016May
+and R4B are reached only from per-version branches of two chain classes that dispatch on the
+`FhirContext` version, and `FhirConfig` creates exactly one, `FhirContext.forR4()` — so they are
+unreachable by construction, not merely untested. Another 21 MB. Introduce a second context at a
+different version and they must come back; the failure is a `NoClassDefFoundError` from inside
+terminology validation rather than anything the compiler sees.
+
+**`org.ogce:xpp3` is excluded for its paperwork, not its 0.4 MB.** It is a re-publication of a
+project last released in 2005, declares no licence in its POM, and carries `jakarta-regexp` 1.4,
+which declares none either — two SOUP items with no identifiable supplier and no anomaly list to
+review. It is also the exclusion with the least margin: its `org.xmlpull` classes are referenced
+two thousand times across the validator. Almost all of that is `org.hl7.fhir.r5.formats.XmlParser`,
+which parses R5 XML *text* and is not how anything gets parsed here — HAPI reads inbound XML with
+StAX and the validator walks the element model over DOM. `XhtmlNarrativeParsingTest` is what makes
+that safe to rely on, because a host may put a narrative on any resource it sends.
+
+`maven-enforcer`'s `bannedDependencies` lists all eleven as well, because an exclusion prunes one
+subtree only and which HAPI artifact reaches which jar is HAPI's business: four of these needed
+an exclusion on one dependency and would have returned through another. If the rule fires, add
+the exclusion on whatever now reaches it rather than relaxing the rule.
+
+**The dependency list is a regulatory artifact, and it is generated.** This service is destined
+for an MDR submission, where every third-party item that ships is SOUP under IEC 62304 and needs a
+supplier, a version, a stated purpose and a route to its anomaly list — and, under MDCG 2019-16
+and IEC 81001-5-1, a machine-readable inventory to track vulnerabilities against after release.
+`cyclonedx-maven-plugin` writes `target/sbom.{json,xml}` on `package`, and `tools/soup-list.mjs`
+turns that into `docs/SOUP.md`. Neither is hand-maintained on purpose: a SOUP list written by hand
+is wrong the first time a transitive version moves, and nothing says so.
+
+Two things there are decisions rather than defaults. The SBOM is configured
+`includeTestScope=false`, because SOUP is what ships — WireMock, H2 and JUnit carry a
+tool-selection obligation instead, and having the build draw that line makes it auditable rather
+than asserted. And `tools/soup-list.mjs` exits non-zero when a direct dependency has no purpose
+recorded in its `PURPOSE` map, so adding a dependency to the POM cannot quietly skip the paperwork.
+
+The number that matters for that submission is items and suppliers, not megabytes: **92 items from
+20 suppliers**, 18 of which are HAPI FHIR and `org.hl7.fhir.core` released in lockstep by the same
+team, which is one supplier to watch rather than eighteen. Before changing a dependency, consider
+what it does to those two numbers.
 
 **The canonical is `http://spec.digitalis.nl/fhir`** — a host of its own for the artifacts,
 independent of the corporate site and of whatever serves the API, with room under `/fhir` for the
@@ -284,19 +347,35 @@ and let the server render them. Use `error/UnauthorizedException` rather than HA
 `AuthenticationException` for 401s — HAPI special-cases the latter into a `text/plain` body,
 which would be the one un-parseable response in the API.
 
-**The Spring surface is deliberately small, and two starters have already been removed.**
-`spring-boot-starter-security` became `auth/BasicAuthenticationFilter` (above) and
-`spring-boot-starter-jdbc` became a `HikariConfig` and one `PreparedStatement`, together taking 13
-jars off the tree. What Boot still provides is worth keeping and should not be removed by reflex:
+**The Spring surface is deliberately small, and three starters have already been removed.**
+`spring-boot-starter-security` became `auth/BasicAuthenticationFilter` (above),
+`spring-boot-starter-jdbc` became a `HikariConfig` and one `PreparedStatement`, and
+`spring-boot-starter-web` became `spring-boot-starter` + `spring-boot-starter-tomcat` +
+`spring-web` — together 18 jars off the tree.
+
+That last one is the one to understand before adding a dependency back. **There is no Spring MVC
+on the classpath**: no `DispatcherServlet`, no `@RestController`, no handler mappings. The FHIR
+servlet is registered against the container directly, so MVC was configuring itself on every boot
+for a request path it never saw. Two consequences. Boot's `BasicErrorController` is gone with it,
+so `server.error.*` does nothing and the property was removed — a path outside `/fhir/evs/` gets
+the container's own 404 page rather than Boot's JSON body. And an `@RestController` added later
+will silently never be routed; if one is ever genuinely needed, the honest move is adding
+`spring-boot-starter-web` back rather than hunting for why the endpoint 404s.
+
+Tomcat itself is not optional: HAPI's `RestfulServer` is a `jakarta.servlet.HttpServlet` and
+something has to serve it. `spring-web` is there for `RestClient` in `PrescriptorClient` and
+nothing else, so moving that one call to the JDK's `HttpClient` would remove it. What Boot still provides is worth keeping and should not be removed by reflex:
 the DI container, `@ConfigurationProperties` binding with its relaxed names, the embedded servlet
 container, the executable jar — and `spring-boot-dependencies`, which is the BOM that keeps a
 hundred transitives coherent and is the reason the tree is manageable at all. Removing Spring
 entirely would take about 12% of the bytes and hand you that arbitration by hand; the mass is
 `hapi-fhir-validation` and its tail (plantuml, icu4j, sqlite-jdbc), not Spring.
 
-**Jackson comes from HAPI, and from nowhere else.** `spring-boot-starter-jackson` is excluded
-from `starter-web` so only one Jackson is on the classpath, pinned by HAPI, which serialises
-every `/fhir/*` response. Nothing here needs Spring to serialise JSON. Jackson 3 reaches this
+**Jackson comes from HAPI, and from nowhere else.** `maven-enforcer`'s `bannedDependencies` fails
+the build if `spring-boot-starter-jackson` reappears, so only one Jackson is on the classpath,
+pinned by HAPI, which serialises every `/fhir/*` response. It was an `<exclusion>` on
+`starter-web` until that starter was dropped; nothing pulls Boot's Jackson starter today, and the
+ban is what keeps that true through the next upgrade. Nothing here needs Spring to serialise JSON. Jackson 3 reaches this
 codebase through `formularium-api`, which arrives with `gstandaard-jar` — see *No house
 libraries* above — and a Jackson 2 / Jackson 3 collision does not fail at the boundary that
 caused it: expect the context to fail at `RestClient` construction with
