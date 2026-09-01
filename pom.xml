@@ -388,6 +388,49 @@
 			</resource>
 		</resources>
 
+		<!--
+			The SBOM, and the input to the SOUP list. IEC 62304 wants every third-party item that
+			ships identified by supplier and version; MDCG 2019-16 and IEC 81001-5-1 want that same
+			list machine-readable so vulnerabilities can be tracked against it after release. One
+			generated file serves both, and generating it from the resolved tree is the point — a
+			hand-maintained SOUP list is wrong the first time a transitive version moves, and
+			nothing tells you.
+
+			Managed rather than bound: nothing generates an SBOM on an ordinary `mvn install`,
+			because it costs a dependency re-resolution and a schema validation on every build for
+			a file that only matters at release. Two ways to ask for one:
+
+			    mvn -Psbom package      # bound to the package phase, for a release build
+			    mvn cyclonedx:makeBom   # on demand, no build required
+
+			Both take the configuration below, which is why it lives here and not in the profile.
+
+			Test-scope dependencies are deliberately excluded: SOUP is software that ships in the
+			device. WireMock, H2 and JUnit are development tools, which carry a tool-selection
+			obligation instead, not a SOUP one. Keeping them out of this file is what makes that
+			distinction auditable rather than asserted.
+		-->
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.cyclonedx</groupId>
+					<artifactId>cyclonedx-maven-plugin</artifactId>
+					<version>2.9.3</version>
+					<configuration>
+						<schemaVersion>1.6</schemaVersion>
+						<outputFormat>all</outputFormat>
+						<outputName>sbom</outputName>
+						<includeCompileScope>true</includeCompileScope>
+						<includeRuntimeScope>true</includeRuntimeScope>
+						<includeProvidedScope>false</includeProvidedScope>
+						<includeSystemScope>false</includeSystemScope>
+						<includeTestScope>false</includeTestScope>
+						<includeLicenseText>false</includeLicenseText>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
 		<plugins>
 			<!--
 				Guards the version coherence the dependencyManagement block above establishes.
@@ -479,46 +522,7 @@
 				</executions>
 			</plugin>
 
-			<!--
-				The SBOM, and the input to the SOUP list. IEC 62304 wants every third-party item
-				that ships identified by supplier and version; MDCG 2019-16 and IEC 81001-5-1 want
-				that same list machine-readable so vulnerabilities can be tracked against it after
-				release. One generated file serves both, and generating it from the resolved tree
-				is the point — a hand-maintained SOUP list is wrong the first time a transitive
-				version moves, and nothing tells you.
-
-				Test-scope dependencies are deliberately excluded: SOUP is software that ships in
-				the device. WireMock, H2 and JUnit are development tools, which carry a tool
-				-selection obligation instead, not a SOUP one. Keeping them out of this file is
-				what makes that distinction auditable rather than asserted.
-			-->
-			<plugin>
-				<groupId>org.cyclonedx</groupId>
-				<artifactId>cyclonedx-maven-plugin</artifactId>
-				<version>2.9.1</version>
-				<executions>
-					<execution>
-						<id>sbom</id>
-						<phase>package</phase>
-						<goals>
-							<goal>makeBom</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<schemaVersion>1.6</schemaVersion>
-					<outputFormat>all</outputFormat>
-					<outputName>sbom</outputName>
-					<includeCompileScope>true</includeCompileScope>
-					<includeRuntimeScope>true</includeRuntimeScope>
-					<includeProvidedScope>false</includeProvidedScope>
-					<includeSystemScope>false</includeSystemScope>
-					<includeTestScope>false</includeTestScope>
-					<includeLicenseText>false</includeLicenseText>
-				</configuration>
-			</plugin>
-
-			<plugin>
+<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<version>${spring.boot.version}</version>
@@ -532,5 +536,32 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+			Attaches the SBOM to a release build: `mvn -Psbom clean verify`. The version and the
+			configuration come from pluginManagement above, so this profile says only *when*.
+		-->
+		<profile>
+			<id>sbom</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.cyclonedx</groupId>
+						<artifactId>cyclonedx-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>sbom</id>
+								<phase>package</phase>
+								<goals>
+									<goal>makeBom</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

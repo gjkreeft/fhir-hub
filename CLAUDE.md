@@ -19,7 +19,9 @@ mvn test                 # 103 tests; no network and no database — WireMock st
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
-node tools/soup-list.mjs # docs/SOUP.md from target/sbom.json; run after `mvn package`
+mvn cyclonedx:makeBom    # target/sbom.{json,xml}; not built by an ordinary install
+mvn -Psbom clean verify  # ...or a release build, with the SBOM attached to the artifact
+node tools/soup-list.mjs # docs/SOUP.md, from target/sbom.json
 docker compose up --build
 
 cd ig && npm run sushi   # rebuild the profiles (SUSHI + the version stamp)
@@ -253,9 +255,16 @@ the exclusion on whatever now reaches it rather than relaxing the rule.
 for an MDR submission, where every third-party item that ships is SOUP under IEC 62304 and needs a
 supplier, a version, a stated purpose and a route to its anomaly list — and, under MDCG 2019-16
 and IEC 81001-5-1, a machine-readable inventory to track vulnerabilities against after release.
-`cyclonedx-maven-plugin` writes `target/sbom.{json,xml}` on `package`, and `tools/soup-list.mjs`
-turns that into `docs/SOUP.md`. Neither is hand-maintained on purpose: a SOUP list written by hand
-is wrong the first time a transitive version moves, and nothing says so.
+`cyclonedx-maven-plugin` writes `target/sbom.{json,xml}` and `tools/soup-list.mjs` turns that into
+`docs/SOUP.md`. Neither is hand-maintained on purpose: a SOUP list written by hand is wrong the
+first time a transitive version moves, and nothing says so.
+
+The plugin is in `pluginManagement` with no execution bound, so **an ordinary `mvn install`
+generates nothing** — the SBOM costs a dependency re-resolution and a schema validation, on a file
+that only matters at release. Ask for it with `mvn cyclonedx:makeBom` or bind it to a release build
+with `mvn -Psbom clean verify`; the configuration lives in `pluginManagement` precisely so both
+routes produce the same file. `tools/soup-list.mjs` exits with those two commands in the message if
+the SBOM is absent, so the indirection cannot turn into a confusing stack trace.
 
 Two things there are decisions rather than defaults. The SBOM is configured
 `includeTestScope=false`, because SOUP is what ships — WireMock, H2 and JUnit carry a

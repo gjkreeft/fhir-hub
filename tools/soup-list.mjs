@@ -9,11 +9,20 @@
  * every transitive item is attributed to the direct dependency that pulls it in.
  *
  * Generated rather than written, because a hand-kept SOUP list goes stale silently the first
- * time a transitive version moves. Run `node tools/soup-list.mjs` after
- * `mvn package`; the check below fails if a direct dependency has no purpose recorded, so
+ * time a transitive version moves. Run `mvn cyclonedx:makeBom` (or a
+ * `-Psbom` build) first, then `node tools/soup-list.mjs`; the check below fails if a direct dependency has no purpose recorded, so
  * adding one to the POM cannot skip this file.
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+
+const SBOM = 'target/sbom.json';
+
+if (!existsSync(SBOM)) {
+	console.error(`${SBOM} not found. The SBOM is not built on an ordinary install — ask for it:`);
+	console.error('  mvn cyclonedx:makeBom     (on demand, no build required)');
+	console.error('  mvn -Psbom clean verify   (a release build, SBOM attached to the artifact)');
+	process.exit(1);
+}
 
 const PURPOSE = {
 	'org.springframework.boot:spring-boot-starter':
@@ -38,7 +47,7 @@ const PURPOSE = {
 		'JDBC driver for the G-Standaard reference database.',
 };
 
-const bom = JSON.parse(readFileSync('target/sbom.json', 'utf8'));
+const bom = JSON.parse(readFileSync(SBOM, 'utf8'));
 const root = bom.metadata.component['bom-ref'];
 const byRef = new Map(bom.components.map((c) => [c['bom-ref'], c]));
 const edges = new Map(bom.dependencies.map((d) => [d.ref, d.dependsOn ?? []]));
