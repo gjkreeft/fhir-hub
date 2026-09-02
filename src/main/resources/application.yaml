@@ -48,6 +48,43 @@ logging:
     # Defining a logback.xml would silently override this — pick one place, not both.
     console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p){} %clr(%-24.-24logger{0}){cyan} %clr(:){faint} %m%n%wex"
 
+    # The same layout for a log file, with two deliberate differences.
+    #
+    # The DATE IS BACK. The console pattern drops it because journald and a container runtime
+    # both stamp their own; a file has nobody to do that, and a log of a medical-device
+    # interface whose lines say only "08:33:09.766" cannot be read six months later.
+    #
+    # And NO %clr. The colour converter is driven by AnsiOutput, which is configured globally
+    # rather than per appender, so under a TTY it would write ANSI escapes into the file — an
+    # archived .gz full of \033[0;39m. It happens to be harmless under systemd, where stdout
+    # is not a TTY and colour switches itself off, which is exactly what makes it the kind of
+    # bug that only appears when someone runs the jar by hand to reproduce something.
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p %-24.-24logger{0} : %m%n%wex"
+
+  # Where the file goes is deployment configuration and is deliberately NOT set here: unset,
+  # Boot registers no file appender at all, so a developer running the jar gets the console
+  # and nothing else. The server sets LOGGING_FILE_NAME in the systemd environment file —
+  # see deploy/fhir-hub.env, and note that /var/log is read-only under the unit's
+  # ProtectSystem=strict unless LogsDirectory= creates the path.
+  #
+  # Rotation is in-process, by Logback, rather than logrotate: one less moving part, and no
+  # copytruncate window in which lines are lost. These are the live property names — the
+  # logging.file.max-size family that reads more naturally is deprecated in favour of them.
+  logback:
+    rollingpolicy:
+      # Rolls daily (the default file-name-pattern is ${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz) and
+      # again at this size within a day. Volume is startup-dominated - 16 lines and 1,920
+      # bytes per boot, measured, and a served request logs nothing at all - so the size
+      # trigger is the exception and the daily roll is what actually files the archives.
+      max-file-size: 10MB
+      # 90 days, not Boot's default 7. At the volume above this is a few hundred KB, and the
+      # question a support call asks is "what did the interface answer that host last quarter".
+      # Logback deletes only ON a rollover, which the daily roll guarantees.
+      max-history: 90
+      # A cap the default (0B) does not impose. This is the disk-full backstop, not the
+      # retention policy: reaching it means something is logging in a loop.
+      total-size-cap: 1GB
+
 gstandaard:
   # Read-only reference lookup: resolves current medication (PRK/HPK) to the PRK+GPK pair
   # Prescriptor needs for medication surveillance. Consumed by GStandaardJdbcConfig, which

@@ -1,0 +1,35 @@
+# fhir-hub as a systemd service on Debian 13.
+
+[Unit]
+
+# The service needs the G-Standaard MariaDB to be reachable
+Wants=network-online.target
+After=network-online.target
+
+# Maximum five starts in a minute. After that the unit goes to `failed`
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+
+User=fhir
+Group=fhir
+WorkingDirectory=/home/fhir/fhir-hub-1.0.0
+EnvironmentFile=/etc/digitalis/fhir-hub/fhir-hub.env
+
+# HAPI FHIR needs a lot of memory
+ExecStart=/usr/bin/java -Xmx512m -XX:+ExitOnOutOfMemoryError -jar fhir-hub-1.0.0.jar
+
+Restart=always
+RestartSec=3
+
+# Spring Boot exits 143 on SIGTERM
+SuccessExitStatus=143
+
+# Kill the process after 10 s. if it won't stop after a SIGTERM
+TimeoutStopSec=10
+
+SyslogIdentifier=fhir-hub
+
+[Install]
+WantedBy=multi-user.target
