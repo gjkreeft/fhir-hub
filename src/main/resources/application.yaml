@@ -8,9 +8,9 @@ spring:
 
 server:
   # No `error:` block: Boot's error page comes from Spring MVC, which is not on the classpath —
-  # this application registers the FHIR servlet directly and has no DispatcherServlet. Errors
-  # inside /fhir/evs/ are rendered as OperationOutcome by HAPI; a request to any other path gets
-  # the container's own 404.
+  # this application registers the FHIR servlets directly and has no DispatcherServlet. Errors
+  # inside /fhir/evs/ and /fhir/surveillance/ are rendered as OperationOutcome by HAPI; a request
+  # to any other path gets the container's own 404.
   port: ${PORT:8080}
 
 prescriptor:

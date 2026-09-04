@@ -46,7 +46,7 @@ import nl.digitalis.fhirhub.validation.ProfileValidator;
  * enforcement.
  */
 @Component
-public class SessionOperationProvider extends BaseProvider {
+public class SessionOperationProvider extends EvsProvider {
 
 	public static final String FORMULARY_SESSION = "$formulary-session";
 	public static final String CREATERX_SESSION = "$createrx-session";

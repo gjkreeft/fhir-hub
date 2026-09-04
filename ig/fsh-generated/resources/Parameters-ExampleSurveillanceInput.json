@@ -1,0 +1,206 @@
+{
+  "resourceType": "Parameters",
+  "id": "ExampleSurveillanceInput",
+  "meta": {
+    "profile": [
+      "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput"
+    ]
+  },
+  "parameter": [
+    {
+      "name": "patient",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ExamplePatient",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+          ]
+        },
+        "gender": "female",
+        "birthDate": "1980-01-01"
+      }
+    },
+    {
+      "name": "xisId",
+      "valueString": "xis-001"
+    },
+    {
+      "name": "xisVersion",
+      "valueString": "1.0"
+    },
+    {
+      "name": "prescription",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "ExamplePrescriptionInput",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+          ]
+        },
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
+              "code": "18996",
+              "display": "PARACETAMOL ZETPIL 1000MG"
+            },
+            {
+              "system": "http://www.whocc.no/atc",
+              "code": "N02BE01"
+            }
+          ]
+        },
+        "dosageInstruction": [
+          {
+            "extension": [
+              {
+                "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+                "valueString": "3-4D1S; gedurende max. 1 maand"
+              }
+            ]
+          }
+        ],
+        "dispenseRequest": {
+          "quantity": {
+            "value": 15,
+            "system": "urn:oid:2.16.840.1.113883.2.4.4.1.900.2",
+            "code": "ST"
+          }
+        }
+      }
+    },
+    {
+      "name": "medicationStatement",
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "ExampleCurrentMedication",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+          ]
+        },
+        "status": "active",
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.10",
+              "code": "18996"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "allergyIntolerance",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "id": "ExampleAllergy",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
+          ]
+        },
+        "patient": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "code": "active",
+              "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.1.750",
+              "code": "10499"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "condition",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "ExampleContraIndication",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+          ]
+        },
+        "subject": {
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+              "valueCode": "unknown"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "urn:oid:2.16.840.1.113883.2.4.4.1.902.40",
+              "code": "228"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "observation",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "ExampleLabResult",
+        "meta": {
+          "profile": [
+            "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
+          ]
+        },
+        "valueQuantity": {
+          "system": "http://unitsofmeasure.org",
+          "value": 65,
+          "unit": "mL/min/1.73m2",
+          "code": "mL/min/{1.73_m2}"
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "62238-1"
+            }
+          ]
+        },
+        "effectiveDateTime": "2024-07-04"
+      }
+    }
+  ]
+}

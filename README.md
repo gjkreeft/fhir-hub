@@ -1,19 +1,25 @@
 # fhir-hub
 
-A FHIR R4 interface for **Digitalis Prescriptor 3**, functionally equivalent to **v2** of the
-JSON interface in `../json-interface`, with one deliberate difference: **authentication has moved
-out of the message body and onto the HTTP layer**.
+One FHIR R4 interface in front of **two distinct Digitalis applications**, on two FHIR bases:
+
+| | | |
+| --- | --- | --- |
+| **Prescriptor** | `/fhir/evs` | Prescribing, in Prescriptor's own UI. Session-based: open, hand the browser over, collect the result. Functionally equivalent to **v2** of the JSON interface in `../json-interface`, with one deliberate difference — **authentication has moved out of the message body and onto the HTTP layer** |
+| **Surveillance** | `/fhir/surveillance` | Medication surveillance on its own, asked as a question and answered in the payload. **Published and not implemented**: a conformant request is a 501 — see *A second base for medication surveillance* below |
+
+Everything below this line is about Prescriptor unless it says otherwise, because that is the
+contract that works.
 
 Like its predecessor it is a stateless proxy: it accepts FHIR, translates to the XML-RPC
 dialect Prescriptor speaks, and translates the answer back. No session state and no credential
 store. It does read the G-Standaard database, read-only, to resolve current medication — see
 *Medication surveillance* below.
 
-**Integrating?** Read [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) — the flow and every
-endpoint with its input and output specification. This README covers the design rationale behind
-those specifications.
+**Integrating?** Read [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) — one section per
+application, then every endpoint with its input and output specification. This README covers the
+design rationale behind those specifications.
 
-## The flow
+## The Prescriptor flow
 
 1. The host opens a session with the patient context. It gets back a launch URL and a session id.
 2. The care provider works in the Prescriptor UI at that URL.
@@ -24,6 +30,14 @@ POST   /fhir/evs/$formulary-session        Parameters  ->  Parameters (sessionId
 POST   /fhir/evs/$createrx-session         Parameters  ->  Parameters (sessionId, url)
 GET    /fhir/evs/$session-result?session=  ->  Bundle (MedicationRequest, Communication)
 GET    /fhir/evs/metadata                  ->  CapabilityStatement (unauthenticated)
+```
+
+A second FHIR base carries the medication-surveillance contract, which is **published and not
+implemented** — see *A second base for medication surveillance* below:
+
+```
+POST   /fhir/surveillance/$check-medication   Parameters  ->  501 Not Implemented
+GET    /fhir/surveillance/metadata            ->  CapabilityStatement (unauthenticated)
 ```
 
 `software.version` on that statement is the release of the published specification the deployment
@@ -247,6 +261,45 @@ lookup on `gstandaard_views`, queried directly by `MedicationCodeResolver` over 
 pool (`GStandaardJdbcConfig`, configured under `gstandaard.datasource.*`), and it holds no state
 of its own.
 
+## A second base for medication surveillance
+
+Everything above happens inside a session: the host hands over the medication list, Prescriptor
+runs surveillance while the care provider works, and the signals are shown in Prescriptor's own
+UI. `POST /fhir/surveillance/$check-medication` asks the same question directly — patient context
+and one or more proposed prescriptions in, the signals that fire out — with no session, no browser
+round trip and nothing to poll.
+
+**It is not implemented.** A conformant request is answered with 501 and an `OperationOutcome`
+whose `issue.code` is `not-supported`; a malformed one still gets the 400 its profile produces.
+What exists is the contract: `fhirhub-SurveillanceInput`, the generated `OperationDefinition`, the
+CapabilityStatement entry and a page in the published guide. Publishing it before building it is
+the point — the payload can be reviewed and built against while it is still cheap to change the
+shape.
+
+Three decisions are recorded in `SurveillanceOperationProvider`'s Javadoc rather than here, because
+they are what the next person needs: why the stub answers 501 rather than an empty Bundle of
+findings, which upstream it will call (`prescriptor-api`'s `mb/` package or the Clinical Rules
+Engine directly, and what that does to the credential story), and why no response profile is
+published yet.
+
+**A second base rather than a second service**, and a second base rather than a path under
+`/fhir/evs`. FHIR reserves the path space under a base for resource type names, so a second
+contract cannot be a segment inside one — `FhirConfig.EVS_BASE` records that. Sharing the service
+is a decision with a reason: the two contracts share the payload profiles and their resource
+profiles, the G-Standaard resolution with its fail-closed rule, the validator with its four
+dependencies and nine exclusions, the authentication filter and the version stamped on the
+artifacts. A separate deployable would duplicate all of it, including the SBOM and the SOUP
+inventory that ships with it — 92 items from 20 suppliers, twice, overlapping by almost all of it.
+
+What is *not* shared is the provider set: `EvsProvider` and `SurveillanceProvider` are deliberately
+unrelated marker types, so neither base can advertise the other's operations. There is no common
+supertype to inject by accident, and `SurveillanceIntegrationTest` pins both CapabilityStatements.
+
+The one thing that would justify splitting them is a different software safety classification: a
+service whose *answer* is a clinical alert may classify higher under IEC 62304 than one that
+launches a UI and forwards a medication list, and merging puts the whole codebase in the higher
+class. That is a regulatory decision and it has not been taken.
+
 ## Dosing
 
 `directions.coded` is an NHG Tabel 25 string. It is carried verbatim in the `CodedDirections`
@@ -459,6 +512,12 @@ Changing them alters clinical behaviour and needs its own decision.
   `deploy.sh` on the host, then `verify.sh`. Until then hand out `ig/output/package.tgz` directly,
   because an integrator's validator reports an unresolvable profile as *not checked* rather than as
   a failure — a green run that verified nothing.
+
+  Since 0.2.0 this has a second visible symptom: the publisher logs
+  `FHIRException: Unable to resolve package id nl.digitalis.fhirhub#0.1.0` and the per-artifact
+  *change history* pages come out empty. It fetches the previous release from the canonical to
+  diff against, and there is nothing at that address yet. Not an error — the build stays at
+  `0 errors` — and it fixes itself with the first deploy.
 - **`ig/hosting/nginx-fhir.conf` has never been parsed by nginx.** Every canonical was checked to
   map onto a file that exists, and the identical rules were tested end to end in their Apache
   spelling — every canonical, all four representations, `?_format=` beating `Accept`, the dotted
@@ -496,6 +555,14 @@ Changing them alters clinical behaviour and needs its own decision.
   (`ValueSet = <root>.48.1…`), so it survives a wipe unchanged only while the set of artifacts
   does. Adopting it therefore needs the file kept outside `fsh-generated` and restored before the
   publisher runs, the way `stamp-version.mjs` restores the version.
+- **Implement `$check-medication`, or withdraw it.** The endpoint, its request profile and its
+  page in the published guide exist; the check behind it does not, and it answers 501. Blocking
+  questions, in the order they have to be answered: the safety classification (above), which
+  upstream serves it, whether the credentials on that upstream are still Prescriptor's to
+  validate — the answer decides whether this service can stay free of a credential store — and
+  what `DetectedIssue` carries. A published operation that answers 501 for a release or two is
+  honest; one that does so indefinitely is clutter, and the change policy allows removing it while
+  the guide is `draft`.
 - **A sandbox for integrator self-testing.** `../tests-digitalisrx-testpatients` is the
   natural seed.
 - **No resource sets `meta.profile`.** `fhir/Profiles.java` holds the canonicals and the

@@ -9,9 +9,9 @@ id: nl.digitalis.fhirhub
 canonical: http://spec.digitalis.nl/fhir
 name: DigitalisFhirHub
 title: "Digitalis fhir-hub Implementation Guide"
-description: "FHIR R4 conformance artifacts for the Prescriptor 3 interface: the payloads of $formulary-session, $createrx-session and $session-result."
+description: "FHIR R4 conformance artifacts for the Digitalis FHIR interface: two contracts on two FHIR bases — Prescriptor, the prescribing sessions of $formulary-session, $createrx-session and $session-result, and Surveillance, whose $check-medication request contract is published but not yet implemented."
 status: draft
-version: 0.1.0
+version: 0.2.0
 fhirVersion: 4.0.1
 copyrightYear: 2026+
 releaseLabel: Draft
@@ -40,12 +40,14 @@ parameters:
 pages:
   index.md:
     title: Home
-  flow.md:
-    title: Global flow
   conventions.md:
     title: Conventions
   authentication.md:
     title: Authentication
+  prescriptor.md:
+    title: Prescriptor
+  flow.md:
+    title: The Prescriptor flow
   metadata.md:
     title: GET /fhir/evs/metadata
   formulary-session.md:
@@ -54,6 +56,10 @@ pages:
     title: POST /fhir/evs/$createrx-session
   session-result.md:
     title: GET /fhir/evs/$session-result
+  surveillance.md:
+    title: Surveillance
+  check-medication.md:
+    title: POST /fhir/surveillance/$check-medication
   profiles.md:
     title: Profiles
   code-systems.md:
@@ -77,18 +83,26 @@ pages:
   downloads.md:
     title: Downloads and validation
 
+# One menu group per application, because they are two contracts on two FHIR bases and a reader
+# is integrating with one of them, not with "the interface". Everything outside those two groups
+# is shared by both. "(preview)" belongs in the menu rather than only on the page it labels: a
+# reader has to be able to see that the application does not work yet before they click into it.
 menu:
   Home: index.html
   Getting started:
-    Global flow: flow.html
     Conventions: conventions.html
     Authentication: authentication.html
     Moving from the JSON API: migration.html
-  Operations:
+  Prescriptor:
+    What it is: prescriptor.html
+    The Prescriptor flow: flow.html
     GET /fhir/evs/metadata: metadata.html
     POST /fhir/evs/$formulary-session: formulary-session.html
     POST /fhir/evs/$createrx-session: createrx-session.html
     GET /fhir/evs/$session-result: session-result.html
+  Surveillance (preview):
+    What it is: surveillance.html
+    POST /fhir/surveillance/$check-medication: check-medication.html
   Payloads:
     Profiles: profiles.html
     Code systems: code-systems.html

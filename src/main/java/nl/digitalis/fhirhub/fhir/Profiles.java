@@ -33,6 +33,17 @@ public final class Profiles {
 	public static final String RESULT_BUNDLE =
 			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-ResultBundle";
 
+	/**
+	 * The request profile of {@code $check-medication}, on the surveillance base.
+	 *
+	 * <p>Enforced even though the operation behind it is not implemented: a well-formed body gets
+	 * a 501 and a malformed one still gets a 400 naming what is wrong with it, so an integrator
+	 * can build and test the payload against the same rules that will apply when the check goes
+	 * live. There is deliberately no response profile yet — see {@code SurveillanceOperationProvider}.
+	 */
+	public static final String SURVEILLANCE_INPUT =
+			"http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput";
+
 	private Profiles() {
 	}
 }

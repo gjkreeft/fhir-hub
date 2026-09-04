@@ -30,13 +30,18 @@ const OUT = join(IG, 'input', 'pagecontent');
 // Where each `##` section of the guide is published. The key is the heading text verbatim,
 // backticks and all, so a retitled section is a build failure rather than a lost page.
 const SECTIONS = new Map([
-	['Global flow', 'flow.md'],
 	['Conventions', 'conventions.md'],
 	['Authentication', 'authentication.md'],
+	// One page per application, and then that application's operations. The order here is the
+	// order of the guide, which is the order a reader is meant to meet them in.
+	['Prescriptor', 'prescriptor.md'],
+	['The Prescriptor flow', 'flow.md'],
 	['`GET /fhir/evs/metadata`', 'metadata.md'],
 	['`POST /fhir/evs/$formulary-session`', 'formulary-session.md'],
 	['`POST /fhir/evs/$createrx-session`', 'createrx-session.md'],
 	['`GET /fhir/evs/$session-result`', 'session-result.md'],
+	['Surveillance', 'surveillance.md'],
+	['`POST /fhir/surveillance/$check-medication`', 'check-medication.md'],
 	['Lab determinations', 'lab-determinations.md'],
 	['Profiles', 'profiles.md'],
 	['Code systems', 'code-systems.md'],

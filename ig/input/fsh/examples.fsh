@@ -204,3 +204,34 @@ Description: "A CreateRx session opened on a prescription the host already holds
 * parameter[medicationStatement][0].resource = ExampleCurrentMedication
 * parameter[prescription].name = "prescription"
 * parameter[prescription].resource = ExamplePrescriptionInput
+
+// ---------------------------------------------------------------------------
+// The surveillance contract, on its own base. The operation is NOT implemented — a request
+// shaped exactly like this one is answered with 501 — so this example is what a host builds
+// and validates against today, and nothing more. See profiles-surveillance.fsh.
+//
+// Every resource in it is reused unchanged from the session examples above, which is the point:
+// a host that already opens sessions has no new payload to shape, only a new address to post to.
+// ---------------------------------------------------------------------------
+
+Instance: ExampleSurveillanceInput
+InstanceOf: FhirHubSurveillanceInput
+Usage: #example
+Title: "$check-medication request"
+Description: "One proposed prescription weighed against a patient's current medication, allergy, contra-indication and lab result. NOT IMPLEMENTED: a request like this is answered with 501."
+* parameter[patient].name = "patient"
+* parameter[patient].resource = ExamplePatient
+* parameter[xisId].name = "xisId"
+* parameter[xisId].valueString = "xis-001"
+* parameter[xisVersion].name = "xisVersion"
+* parameter[xisVersion].valueString = "1.0"
+* parameter[prescription][0].name = "prescription"
+* parameter[prescription][0].resource = ExamplePrescriptionInput
+* parameter[medicationStatement][0].name = "medicationStatement"
+* parameter[medicationStatement][0].resource = ExampleCurrentMedication
+* parameter[allergyIntolerance][0].name = "allergyIntolerance"
+* parameter[allergyIntolerance][0].resource = ExampleAllergy
+* parameter[condition][0].name = "condition"
+* parameter[condition][0].resource = ExampleContraIndication
+* parameter[observation][0].name = "observation"
+* parameter[observation][0].resource = ExampleLabResult

@@ -40,6 +40,14 @@
     "endLine": 95
   },
   {
+    "outputFile": "Parameters-ExampleSurveillanceInput.json",
+    "fshName": "ExampleSurveillanceInput",
+    "fshType": "Instance",
+    "fshFile": "examples.fsh",
+    "startLine": 217,
+    "endLine": 237
+  },
+  {
     "outputFile": "StructureDefinition-ext-Dosage.CodedDirections.json",
     "fshName": "CodedDirections",
     "fshType": "Extension",
@@ -158,6 +166,14 @@
     "fshFile": "profiles-parameters.fsh",
     "startLine": 133,
     "endLine": 156
+  },
+  {
+    "outputFile": "StructureDefinition-fhirhub-SurveillanceInput.json",
+    "fshName": "FhirHubSurveillanceInput",
+    "fshType": "Profile",
+    "fshFile": "profiles-surveillance.fsh",
+    "startLine": 28,
+    "endLine": 100
   },
   {
     "outputFile": "ValueSet-allergy-causative-agent.json",

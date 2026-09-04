@@ -8,7 +8,8 @@ import nl.digitalis.fhirhub.config.PrescriptorProperties;
 import nl.digitalis.fhirhub.gstandaard.GStandaardProperties;
 
 /**
- * FHIR R4 interface for Digitalis Prescriptor 3.
+ * FHIR R4 interface for two Digitalis applications: Prescriptor, at {@code /fhir/evs}, and
+ * medication surveillance, at {@code /fhir/surveillance} — see {@code config.FhirConfig}.
  *
  * <p>There is no DataSource auto-configuration to exclude any more: {@code GStandaardJdbcConfig}
  * builds the Hikari pool itself from {@code gstandaard.datasource}, and Boot's JDBC

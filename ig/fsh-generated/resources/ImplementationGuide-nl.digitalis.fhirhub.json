@@ -2,7 +2,7 @@
   "resourceType": "ImplementationGuide",
   "id": "nl.digitalis.fhirhub",
   "url": "http://spec.digitalis.nl/fhir/ImplementationGuide/nl.digitalis.fhirhub",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "name": "DigitalisFhirHub",
   "title": "Digitalis fhir-hub Implementation Guide",
   "status": "draft",
@@ -27,7 +27,7 @@
       ]
     }
   ],
-  "description": "FHIR R4 conformance artifacts for the Prescriptor 3 interface: the payloads of $formulary-session, $createrx-session and $session-result.",
+  "description": "FHIR R4 conformance artifacts for the Digitalis FHIR interface: two contracts on two FHIR bases — Prescriptor, the prescribing sessions of $formulary-session, $createrx-session and $session-result, and Surveillance, whose $check-medication request contract is published but not yet implemented.",
   "jurisdiction": [
     {
       "coding": [
@@ -44,6 +44,22 @@
   ],
   "definition": {
     "resource": [
+      {
+        "reference": {
+          "reference": "StructureDefinition/fhirhub-SurveillanceInput"
+        },
+        "name": "$check-medication input",
+        "description": "The body of POST /fhir/surveillance/$check-medication: the patient's context plus the prescriptions to check against it. PUBLISHED BUT NOT IMPLEMENTED — a conformant request is answered with 501 Not Implemented, and no conclusion about a patient's medication may be drawn from it.",
+        "exampleBoolean": false
+      },
+      {
+        "reference": {
+          "reference": "Parameters/ExampleSurveillanceInput"
+        },
+        "name": "$check-medication request",
+        "description": "One proposed prescription weighed against a patient's current medication, allergy, contra-indication and lab result. NOT IMPLEMENTED: a request like this is answered with 501.",
+        "exampleCanonical": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput"
+      },
       {
         "reference": {
           "reference": "StructureDefinition/fhirhub-CreateRxSessionInput"
@@ -288,11 +304,6 @@
           "generation": "markdown"
         },
         {
-          "nameUrl": "flow.html",
-          "title": "Global flow",
-          "generation": "markdown"
-        },
-        {
           "nameUrl": "conventions.html",
           "title": "Conventions",
           "generation": "markdown"
@@ -300,6 +311,16 @@
         {
           "nameUrl": "authentication.html",
           "title": "Authentication",
+          "generation": "markdown"
+        },
+        {
+          "nameUrl": "prescriptor.html",
+          "title": "Prescriptor",
+          "generation": "markdown"
+        },
+        {
+          "nameUrl": "flow.html",
+          "title": "The Prescriptor flow",
           "generation": "markdown"
         },
         {
@@ -320,6 +341,16 @@
         {
           "nameUrl": "session-result.html",
           "title": "GET /fhir/evs/$session-result",
+          "generation": "markdown"
+        },
+        {
+          "nameUrl": "surveillance.html",
+          "title": "Surveillance",
+          "generation": "markdown"
+        },
+        {
+          "nameUrl": "check-medication.html",
+          "title": "POST /fhir/surveillance/$check-medication",
           "generation": "markdown"
         },
         {

@@ -19,7 +19,7 @@ import nl.digitalis.fhirhub.prescriptor.PrescriptorClient;
  * same Bundle again. That is inherited from Prescriptor, not introduced here.
  */
 @Component
-public class SessionResultProvider extends BaseProvider {
+public class SessionResultProvider extends EvsProvider {
 
 	public static final String SESSION_RESULT = "$session-result";
 	public static final String IN_SESSION = "session";

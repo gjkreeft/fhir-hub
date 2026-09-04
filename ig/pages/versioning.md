@@ -8,7 +8,7 @@ see in a validator message is the version of the guide that produced the profile
 
 ```
 None of the codings provided are in the value set 'ICPC-1 NL'
-(http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl|0.1.0), ...
+(http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl|0.2.0), ...
 ```
 
 The running service does not carry a version anywhere in a request or a response: none in the
@@ -16,6 +16,14 @@ path, none in the payload, none in a header. A deployment implements one release
 and the way to ask which is `GET /fhir/evs/metadata` — the `CapabilityStatement` reports it as
 `software.version`, with `implementation.description` naming it alongside the canonical. That call
 is unauthenticated, so you can check it before you hold credentials.
+
+**One number covers both FHIR bases.** `/fhir/evs` and `/fhir/surveillance` are separate contracts
+with separate CapabilityStatements, and they report the same release, because there is one guide
+and the version is stamped on every artifact in it. So a release that only moves the surveillance
+contract still moves the number an EVS integrator reads, and a release that only moves the EVS
+contract still moves the one a surveillance integrator reads. Which contract a change belongs to is
+named in the [Changelog](changelog.html); the version number cannot carry that news and does not
+try to.
 
 ### Two addresses per artifact
 
@@ -29,7 +37,7 @@ That is the URL a payload carries, and the one to leave in your code. Every rele
 kept at a versioned path, permanently:
 
 ```
-http://spec.digitalis.nl/fhir/0.1.0/StructureDefinition/fhirhub-FormularySessionInput
+http://spec.digitalis.nl/fhir/0.2.0/StructureDefinition/fhirhub-FormularySessionInput
 ```
 
 Point a validator at the versioned path when you want a build that cannot change under you, and
@@ -79,7 +87,7 @@ out of `metadata` rather than assuming.
 
 ### While the status is `draft`
 
-This guide is `draft` at 0.1.0, and `draft` is not a formality: **a breaking change can arrive at
+This guide is `draft` at 0.2.0, and `draft` is not a formality: **a breaking change can arrive at
 a minor version** until the first `active` release. The three that are most likely, and the
 change each would be:
 

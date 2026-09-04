@@ -2,8 +2,18 @@
   "package-id": "nl.digitalis.fhirhub",
   "title": "Digitalis fhir-hub Implementation Guide",
   "canonical": "http://spec.digitalis.nl/fhir",
-  "introduction": "FHIR R4 conformance artifacts for the Digitalis Prescriptor 3 interface: the payloads of $formulary-session, $createrx-session and $session-result.",
+  "introduction": "FHIR R4 conformance artifacts for the Digitalis FHIR interface: two contracts on two FHIR bases — Prescriptor, the prescribing sessions of $formulary-session, $createrx-session and $session-result, and Surveillance, whose $check-medication request contract is published but not yet implemented.",
   "list": [
+    {
+      "version": "0.2.0",
+      "date": "2026-09-02",
+      "desc": "Adds the medication-surveillance contract on a second FHIR base: $check-medication, its request profile and its example. The operation itself is not implemented and answers 501. Nothing on the EVS contract changed.",
+      "path": "http://spec.digitalis.nl/fhir/0.2.0",
+      "status": "draft",
+      "sequence": "Draft",
+      "fhirversion": "4.0.1",
+      "current": true
+    },
     {
       "version": "0.1.0",
       "date": "2026-08-28",
@@ -11,8 +21,7 @@
       "path": "http://spec.digitalis.nl/fhir/0.1.0",
       "status": "draft",
       "sequence": "Draft",
-      "fhirversion": "4.0.1",
-      "current": true
+      "fhirversion": "4.0.1"
     }
   ]
 }

@@ -19,9 +19,6 @@
     </a>
     <ul class="dropdown-menu">
       <li>
-        <a href="flow.html">Global flow</a>
-      </li>
-      <li>
         <a href="conventions.html">Conventions</a>
       </li>
       <li>
@@ -33,10 +30,16 @@
     </ul>
   </li>
   <li class="dropdown">
-    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Operations
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Prescriptor
       <b class="caret"></b>
     </a>
     <ul class="dropdown-menu">
+      <li>
+        <a href="prescriptor.html">What it is</a>
+      </li>
+      <li>
+        <a href="flow.html">The Prescriptor flow</a>
+      </li>
       <li>
         <a href="metadata.html">GET /fhir/evs/metadata</a>
       </li>
@@ -48,6 +51,19 @@
       </li>
       <li>
         <a href="session-result.html">GET /fhir/evs/$session-result</a>
+      </li>
+    </ul>
+  </li>
+  <li class="dropdown">
+    <a data-toggle="dropdown" href="#" class="dropdown-toggle">Surveillance (preview)
+      <b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+      <li>
+        <a href="surveillance.html">What it is</a>
+      </li>
+      <li>
+        <a href="check-medication.html">POST /fhir/surveillance/$check-medication</a>
       </li>
     </ul>
   </li>

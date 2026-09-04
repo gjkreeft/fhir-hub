@@ -1,0 +1,346 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "fhirhub-SurveillanceInput",
+  "url": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput",
+  "version": "0.2.0",
+  "name": "FhirHubSurveillanceInput",
+  "title": "$check-medication input",
+  "status": "draft",
+  "experimental": true,
+  "description": "The body of POST /fhir/surveillance/$check-medication: the patient's context plus the prescriptions to check against it. PUBLISHED BUT NOT IMPLEMENTED — a conformant request is answered with 501 Not Implemented, and no conclusion about a patient's medication may be drawn from it.",
+  "fhirVersion": "4.0.1",
+  "kind": "resource",
+  "abstract": false,
+  "type": "Parameters",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Parameters",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Parameters",
+        "path": "Parameters",
+        "constraint": [
+          {
+            "key": "fhirhub-something-to-check",
+            "severity": "error",
+            "human": "Send at least one prescription to check, or at least one current-medication entry to check for interactions among. A request carrying neither has nothing to evaluate.",
+            "expression": "parameter.where(name = 'prescription' or name = 'medicationStatement').exists()",
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter",
+        "path": "Parameters.parameter",
+        "slicing": {
+          "discriminator": [
+            {
+              "type": "value",
+              "path": "name"
+            }
+          ],
+          "rules": "closed"
+        },
+        "min": 3
+      },
+      {
+        "id": "Parameters.parameter:patient",
+        "path": "Parameters.parameter",
+        "sliceName": "patient",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:patient.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "patient"
+      },
+      {
+        "id": "Parameters.parameter:patient.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:patient.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Patient",
+            "profile": [
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Patient"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:patient.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisId",
+        "path": "Parameters.parameter",
+        "sliceName": "xisId",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:xisId.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "xisId"
+      },
+      {
+        "id": "Parameters.parameter:xisId.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "short": "Your system id; identifies your product, not the practice",
+        "comment": "The same value you send to the session operations, and required here for the same reason: a log line has to be attributable to a supplier and a release. Never forwarded upstream.",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-non-blank",
+            "severity": "error",
+            "human": "Must contain at least one non-whitespace character.",
+            "expression": "$this.matches('[^\\\\s]')",
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:xisId.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisId.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion",
+        "path": "Parameters.parameter",
+        "sliceName": "xisVersion",
+        "min": 1,
+        "max": "1"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "xisVersion"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ],
+        "constraint": [
+          {
+            "key": "fhirhub-non-blank",
+            "severity": "error",
+            "human": "Must contain at least one non-whitespace character.",
+            "expression": "$this.matches('[^\\\\s]')",
+            "source": "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput"
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.resource",
+        "path": "Parameters.parameter.resource",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:xisVersion.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:prescription",
+        "path": "Parameters.parameter",
+        "sliceName": "prescription",
+        "short": "The prescriptions to check; repeat for more than one",
+        "comment": "The same profile $createrx-session takes, so a prescription can be checked and then handed to a session without being reshaped. Repeatable here where the session accepts one, because a host may want a whole proposed regimen weighed at once — and because two proposed drugs can interact with each other and not with anything the patient already takes.",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:prescription.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "prescription"
+      },
+      {
+        "id": "Parameters.parameter:prescription.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:prescription.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "MedicationRequest",
+            "profile": [
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-PrescriptionInput"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:prescription.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement",
+        "path": "Parameters.parameter",
+        "sliceName": "medicationStatement",
+        "short": "The patient's current medication",
+        "comment": "Optional only in the sense that the profile cannot know what the patient takes. Sending an incomplete list is the one error nothing downstream can detect: the answer will be about the list you sent, not about the patient.",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "medicationStatement"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "MedicationStatement",
+            "profile": [
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-MedicationStatement"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:medicationStatement.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance",
+        "path": "Parameters.parameter",
+        "sliceName": "allergyIntolerance",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "allergyIntolerance"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "AllergyIntolerance",
+            "profile": [
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-AllergyIntolerance"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:allergyIntolerance.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:condition",
+        "path": "Parameters.parameter",
+        "sliceName": "condition",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:condition.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "condition"
+      },
+      {
+        "id": "Parameters.parameter:condition.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:condition.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Condition",
+            "profile": [
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-Condition"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:condition.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:observation",
+        "path": "Parameters.parameter",
+        "sliceName": "observation",
+        "min": 0,
+        "max": "*"
+      },
+      {
+        "id": "Parameters.parameter:observation.name",
+        "path": "Parameters.parameter.name",
+        "fixedString": "observation"
+      },
+      {
+        "id": "Parameters.parameter:observation.value[x]",
+        "path": "Parameters.parameter.value[x]",
+        "max": "0"
+      },
+      {
+        "id": "Parameters.parameter:observation.resource",
+        "path": "Parameters.parameter.resource",
+        "min": 1,
+        "type": [
+          {
+            "code": "Observation",
+            "profile": [
+              "http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-LabObservation"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "Parameters.parameter:observation.part",
+        "path": "Parameters.parameter.part",
+        "max": "0"
+      }
+    ]
+  }
+}

@@ -1,3 +1,5 @@
+[FhirHubSurveillanceInput]: StructureDefinition-fhirhub-SurveillanceInput.html
+[ExampleSurveillanceInput]: Parameters-ExampleSurveillanceInput.html
 [FhirHubCreateRxSessionInput]: StructureDefinition-fhirhub-CreateRxSessionInput.html
 [ExampleCreateRxSessionInput]: Parameters-ExampleCreateRxSessionInput.html
 [FhirHubFormularySessionInput]: StructureDefinition-fhirhub-FormularySessionInput.html

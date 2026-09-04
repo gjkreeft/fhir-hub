@@ -4,10 +4,17 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## What this is
 
-A FHIR R4 interface for **Prescriptor 3**, functionally equivalent to **v2** of
-`../json-interface` (Node/TypeScript) with authentication moved from the request body to HTTP Basic. Stateless
-proxy: FHIR in, XML-RPC to Prescriptor, FHIR out. No session store. It does read the
+One FHIR R4 interface in front of **two applications**, on two FHIR bases.
+
+**Prescriptor**, at `/fhir/evs`, is the one that works: functionally equivalent to **v2** of
+`../json-interface` (Node/TypeScript) with authentication moved from the request body to HTTP Basic.
+Stateless proxy: FHIR in, XML-RPC to Prescriptor, FHIR out. No session store. It does read the
 G-Standaard database, read-only, to resolve current medication for medication surveillance.
+
+**Surveillance**, at `/fhir/surveillance`, is published and not implemented — `$check-medication`
+validates its request and then answers 501. See *A second base, for a contract that does not work
+yet* below. Unless a note says otherwise, everything in this file is about the Prescriptor
+contract.
 
 Read `README.md` first — it holds the operation contracts, the full JSON→FHIR mapping table,
 and the open items. This file covers what the README does not: why the code is shaped as it is.
@@ -15,7 +22,7 @@ and the open items. This file covers what the README does not: why the code is s
 ## Commands
 
 ```bash
-mvn test                 # 103 tests; no network and no database — WireMock stubs
+mvn test                 # 123 tests; no network and no database — WireMock stubs
                          # Prescriptor, H2 stands in for the medcode view
 mvn spring-boot:run
 mvn -o test -Dtest=X     # single test class
@@ -75,7 +82,49 @@ HTTP  →  BasicAuthenticationFilter              practiceId + licenseKey off th
 mappers and the XML-RPC layer never see each other's types, so either side can change without
 dragging the other along.
 
+**There are two FHIR bases, and the second one is a stub.** `/fhir/evs` is the flow above;
+`/fhir/surveillance` carries `$check-medication`, which is published and not implemented — see
+*A second base, for a contract that does not work yet* below.
+
 ## Things worth knowing before you change something
+
+**A second base, for a contract that does not work yet.** `/fhir/surveillance/$check-medication`
+asks the medication-surveillance question directly, without a session, and answers **501** with an
+`OperationOutcome` whose `issue.code` is `not-supported`. Its request profile
+(`fhirhub-SurveillanceInput`) *is* enforced, so a malformed body is still a 400 naming the element:
+an integrator can build and validate the payload before the check exists, which is the reason to
+publish an endpoint that does nothing.
+
+Four things there are decisions, and each is easy to undo by accident.
+
+**The 501 must not become a 200.** An empty `Bundle` of findings cannot be told apart from a
+genuine all-clear, and a prescriber who sent a medication list and saw no signal reads it as one —
+the same false negative that makes an unresolvable G-Standaard code a 400 rather than a dropped
+drug. A stub that returns "no issues found" is the one failure mode this whole file is about.
+
+**A second base, not a segment under `/fhir/evs`.** FHIR reserves the path space under a base for
+resource type names, so `/fhir/evs/surveillance/$check-medication` parses as an operation on a
+resource type called `surveillance`. `FhirConfig.EVS_BASE` records this; a third contract goes the
+same way.
+
+**`EvsProvider` and `SurveillanceProvider` have no common supertype, deliberately.** They replaced
+one `BaseProvider`, and the split is what keeps each base's CapabilityStatement to its own
+operations — a shared marker would make `List<BaseProvider>` the easy thing to inject and would
+advertise every session operation on the surveillance base. `SurveillanceIntegrationTest` pins both
+statements. The auth filter is registered once per base for the same reason: the paths a base
+leaves unauthenticated (`metadata`, `OperationDefinition`) are relative to it.
+
+**One version number covers both contracts**, because there is one Implementation Guide and
+`stamp-version.mjs` puts its version on every artifact. So a release that only moves surveillance
+still moves the number `GET /fhir/evs/metadata` reports, and the changelog has to name which
+contract each change belongs to — `ig/pages/versioning.md` promises exactly that.
+
+What is *not* decided, and is recorded in `SurveillanceOperationProvider`'s Javadoc rather than
+here: which upstream serves the check (`prescriptor-api`'s `mb/` package or the Clinical Rules
+Engine directly, and whether the credentials on it are still Prescriptor's to validate — the answer
+decides whether this service can stay free of a credential store), what a `DetectedIssue` carries,
+and whether a partial answer is ever permitted. No response profile is published, because a profile
+with nothing behind it is a promise this service cannot keep.
 
 **Do not build XML by string templating.** The predecessor did, unescaped, which meant a single
 `&` in a drug description or lab value produced a malformed request and let caller-supplied
@@ -366,8 +415,8 @@ That last one is the one to understand before adding a dependency back. **There 
 on the classpath**: no `DispatcherServlet`, no `@RestController`, no handler mappings. The FHIR
 servlet is registered against the container directly, so MVC was configuring itself on every boot
 for a request path it never saw. Two consequences. Boot's `BasicErrorController` is gone with it,
-so `server.error.*` does nothing and the property was removed — a path outside `/fhir/evs/` gets
-the container's own 404 page rather than Boot's JSON body. And an `@RestController` added later
+so `server.error.*` does nothing and the property was removed — a path outside the two FHIR
+bases gets the container's own 404 page rather than Boot's JSON body. And an `@RestController` added later
 will silently never be routed; if one is ever genuinely needed, the honest move is adding
 `spring-boot-starter-web` back rather than hunting for why the endpoint 404s.
 
@@ -420,7 +469,7 @@ edits are free.
 SUSHI stamped `version` on every artifact; now that a real IG is built, it leaves `version`,
 `publisher` and `jurisdiction` to the publisher, which applies them into `output/` only. But
 `fsh-generated/resources` is what the Maven build copies into the jar, so unstamped the *service*
-would enforce version-less profiles while the published package says `0.1.0`, and an
+would enforce version-less profiles while the published package says `0.2.0`, and an
 `OperationOutcome` would stop naming the version its rule came from — which the change policy
 promises it does. `ig/scripts/stamp-version.mjs` puts it back and runs as part of `npm run sushi`;
 `IgCanonicalsTest.theProfilesCarryTheIgVersion` fails if someone runs `sushi .` directly.
@@ -511,7 +560,10 @@ a difference recorded from memory tends to describe a version of it that no long
 ## Testing
 
 Unit tests per mapper, plus `FhirHubIntegrationTest` which exercises all three operations over
-real HTTP with WireMock standing in for Prescriptor. That integration test is where credential
+real HTTP with WireMock standing in for Prescriptor, and `SurveillanceIntegrationTest` which does
+the same for the second base — where what needs pinning is that a conformant request is refused
+with a status no client can read as a result, that the request profile is enforced anyway, and that
+neither base advertises the other's operations. That integration test is where credential
 forwarding, OperationOutcome rendering, and the CapabilityStatement are pinned — the things
 unit tests cannot see. Fixtures live in `src/test/resources/xmlrpc/`; the stand-in `medcode`
 view is `src/test/resources/gstandaard-medcode.sql`.

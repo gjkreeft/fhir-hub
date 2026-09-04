@@ -89,6 +89,7 @@ class IgCanonicalsTest {
 		assertThat(Profiles.CREATERX_SESSION_INPUT).startsWith(CANONICAL + "/");
 		assertThat(Profiles.SESSION_OUTPUT).startsWith(CANONICAL + "/");
 		assertThat(Profiles.RESULT_BUNDLE).startsWith(CANONICAL + "/");
+		assertThat(Profiles.SURVEILLANCE_INPUT).startsWith(CANONICAL + "/");
 	}
 
 	/**
@@ -98,7 +99,7 @@ class IgCanonicalsTest {
 	 * the IG Publisher applies it on the way into {@code output/} instead. That is fine for the
 	 * published site and wrong here, because {@code ig/fsh-generated/resources} is copied into the
 	 * jar and validated against at runtime: unstamped, this service would enforce version-less
-	 * profiles while the published package says 0.1.0, and an {@code OperationOutcome} would stop
+	 * profiles while the published package says 0.2.0, and an {@code OperationOutcome} would stop
 	 * naming the version the rule came from. {@code ig/scripts/stamp-version.mjs} puts it back, and
 	 * this test is what notices when someone runs {@code sushi .} directly instead of
 	 * {@code npm run sushi}.
@@ -124,6 +125,23 @@ class IgCanonicalsTest {
 		assertThat(unstamped)
 				.as("conformance resources declaring version %s — run 'npm run sushi' in ig/", version)
 				.isEmpty();
+	}
+
+	/**
+	 * A profile constant that names nothing is the failure this whole file exists to prevent, and
+	 * it is invisible at compile time: {@code ProfileValidator} would ask the validator for a
+	 * canonical nothing defines, and the reference validator answers an unresolvable profile with
+	 * a pass rather than an error — so the payload would be accepted unchecked.
+	 */
+	@Test
+	void everyProfileConstantNamesAProfileTheIgDefines() throws IOException {
+		String fsh = String.join("\n", read("profiles-parameters.fsh"), read("profiles-output.fsh"),
+				read("profiles-surveillance.fsh"));
+
+		for (String canonical : List.of(Profiles.FORMULARY_SESSION_INPUT, Profiles.CREATERX_SESSION_INPUT,
+				Profiles.SESSION_OUTPUT, Profiles.RESULT_BUNDLE, Profiles.SURVEILLANCE_INPUT)) {
+			assertThat(idIn(fsh, canonical)).as("%s is defined in ig/input/fsh", canonical).isTrue();
+		}
 	}
 
 	private String versionFromSushiConfig() throws IOException {

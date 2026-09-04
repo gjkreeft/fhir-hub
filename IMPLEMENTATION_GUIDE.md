@@ -1,30 +1,47 @@
 # fhir-hub Implementation Guide
 
-FHIR R4 interface to **Prescriptor 3**. This is the integration reference: the flow, and every
-endpoint with its input and output specification.
+One FHIR R4 interface in front of **two distinct Digitalis applications**. They are separate
+contracts on separate FHIR bases, and which one you are integrating with decides most of what you
+need from this document:
+
+| | | |
+| --- | --- | --- |
+| **[Prescriptor](#prescriptor)** | `/fhir/evs` | Prescribing, in Prescriptor's own user interface. Your system opens a session, hands the browser over and collects the result |
+| **[Surveillance](#surveillance)** | `/fhir/surveillance` | Medication surveillance on its own, asked as a question and answered in the payload. No interface, no session — and **not implemented yet** |
+
+Read the section for your application first. Everything after them —
+[Lab determinations](#lab-determinations), [Profiles](#profiles),
+[Code systems](#code-systems), [Extensions](#extensions), [Errors](#errors) — is shared by both,
+and so are [Conventions](#conventions) and [Authentication](#authentication) before them. That
+sharing is deliberate: one set of credentials, one set of payload profiles for patient, medication,
+allergies, contra-indications and lab results, one release number.
 
 - **FHIR version** — R4 (4.0.1). All payloads are `Parameters` or `Bundle`; there is no resource
   REST API and no search.
-- **Relationship to the Prescriptor JSON API** — same operations, same semantics and the same HTTP
-  status codes, with authentication moved from the request body onto HTTP Basic. If you are moving
-  across from it, the differences that affect you are collected under
-  [Moving from the JSON API](#moving-from-the-json-api).
+- **Relationship to the Prescriptor JSON API** — the Prescriptor contract has the same operations,
+  the same semantics and the same HTTP status codes as the JSON API, with authentication moved from
+  the request body onto HTTP Basic. If you are moving across from it, the differences that affect
+  you are collected under [Moving from the JSON API](#moving-from-the-json-api). Surveillance has no
+  JSON-API predecessor.
 - **Statelessness** — no session store, so persist the session id yourself, and store the result
   Bundle when you receive it. Nothing can be re-fetched.
 - **Normative status** — the prose and the `StructureDefinition`s are one specification, published
   together under the canonical `http://spec.digitalis.nl/fhir`. Every payload described here has a
   profile you can validate against, and every request is checked against its profile before it is
-  processed. See [Profiles](#profiles).
+  processed — the unimplemented one included. See [Profiles](#profiles).
 
 ## Table of contents
 
-- [Global flow](#global-flow)
 - [Conventions](#conventions)
 - [Authentication](#authentication)
-- [`GET /fhir/evs/metadata`](#get-fhirevsmetadata)
-- [`POST /fhir/evs/$formulary-session`](#post-fhirevsformulary-session)
-- [`POST /fhir/evs/$createrx-session`](#post-fhirevscreaterx-session)
-- [`GET /fhir/evs/$session-result`](#get-fhirevssession-result)
+- [**Prescriptor**](#prescriptor)
+  - [The Prescriptor flow](#the-prescriptor-flow)
+  - [`GET /fhir/evs/metadata`](#get-fhirevsmetadata)
+  - [`POST /fhir/evs/$formulary-session`](#post-fhirevsformulary-session)
+  - [`POST /fhir/evs/$createrx-session`](#post-fhirevscreaterx-session)
+  - [`GET /fhir/evs/$session-result`](#get-fhirevssession-result)
+- [**Surveillance**](#surveillance)
+  - [`POST /fhir/surveillance/$check-medication`](#post-fhirsurveillancecheck-medication)
 - [Lab determinations](#lab-determinations)
 - [Profiles](#profiles)
 - [Code systems](#code-systems)
@@ -34,46 +51,11 @@ endpoint with its input and output specification.
 - [Moving from the JSON API](#moving-from-the-json-api)
 - [Current limitations](#current-limitations)
 
-## Global flow
-
-Three calls, plus a browser round trip the host does not mediate.
-
-```
-Host (XIS/HIS)                fhir-hub                 Prescriptor        G-Standaard
-     |                            |                         |                  |
-  1  |-- POST $…-session -------->|                         |                  |
-     |                            |-- resolve PRK|HPK ------------------------->|
-     |                            |<- PRK + GPK (+HPK) -------------------------|
-     |                            |-- open session -------->|                  |
-     |                            |<- sessionId + url ------|                  |
-     |<- Parameters{sessionId,url}-|                         |                  |
-     |                            |                         |                  |
-  2  |  redirect the user's browser to `url` ----------------->  (Prescriptor UI)
-     |                            |                         |                  |
-     |  user prescribes; Prescriptor redirects to endSessionUrl <---------------|
-     |                            |                         |                  |
-  3  |-- GET $session-result ---->|                         |                  |
-     |                            |-- request result ------>|  (session ends)  |
-     |<- Bundle -------------------|<- drugs + advice -------|                  |
-```
-
-1. **Open a session.** The host posts the patient context — demographics, allergies,
-   contra-indications, current medication, lab results — and receives a `sessionId` and a `url`.
-   Current medication is resolved against the G-Standaard *before* the session is opened, because
-   surveillance needs PRK and GPK together.
-2. **The care provider works in the Prescriptor UI** at that `url`. fhir-hub is not involved.
-   When finished, Prescriptor redirects the browser to the `endSessionUrl` the host supplied.
-3. **The host fetches the result** with the `sessionId` and receives a `Bundle` of
-   `MedicationRequest` (prescriptions) and `Communication` (patient advice) resources.
-
-These three operations are the entire surface. There is no resource REST API and no search: reads
-or writes against `/fhir/Patient`, `/fhir/MedicationRequest` and the like are not supported.
-
 ## Conventions
 
 | | |
 | --- | --- |
-| Base path | `/fhir` |
+| Base paths | `/fhir/evs` for [Prescriptor](#prescriptor), `/fhir/surveillance` for [Surveillance](#surveillance) — two FHIR bases, each with its own `metadata`, each addressed in full. They are siblings rather than nested because FHIR reserves the path space under a base for resource type names |
 | Request content type | `application/fhir+json` (`application/fhir+xml` also accepted) |
 | Response content type | `application/fhir+json`, pretty-printed |
 | Format override | `?_format=json`, `?_format=xml`, `?_format=html` |
@@ -110,6 +92,84 @@ Unauthenticated paths: `GET /fhir/evs/metadata`, `GET /fhir/evs/OperationDefinit
 before your credentials are issued. Everything else requires the header; a missing or malformed one
 is a 401 with `WWW-Authenticate: Basic`.
 
+## Prescriptor
+
+**Digitalis Prescriptor 3** is the prescribing application: the care provider chooses a treatment,
+writes the prescription and reads the signals in Prescriptor's own user interface. Your system
+supplies the patient context, hands the browser over, and collects what came out.
+
+```
+Base            /fhir/evs
+Interaction     session-based — open, redirect the browser, poll for the result
+Implemented     yes
+```
+
+`evs` is *elektronisch voorschrijfsysteem*; the segment is part of the base and never omitted.
+
+| Operation | |
+| --- | --- |
+| [`POST /fhir/evs/$formulary-session`](#post-fhirevsformulary-session) | Open a formulary session: a treatment is chosen for a stated reason for encounter |
+| [`POST /fhir/evs/$createrx-session`](#post-fhirevscreaterx-session) | Open a prescribing session without a formulary lookup, optionally starting from a prescription you already hold |
+| [`GET /fhir/evs/$session-result`](#get-fhirevssession-result) | Collect the prescriptions and patient advice. Single-use: it ends the session |
+| [`GET /fhir/evs/metadata`](#get-fhirevsmetadata) | The CapabilityStatement. Unauthenticated |
+
+Read [The Prescriptor flow](#the-prescriptor-flow) first: three calls plus a browser round trip
+your system does not mediate, and the ordering constraints between them.
+
+**Medication surveillance happens inside a Prescriptor session too**, which is why the current
+medication you send matters as much as the prescription. Prescriptor weighs the treatment against
+the patient's medication, allergies, contra-indications and lab results while the care provider
+works, and shows the signals in its own interface — they are not returned to your system. If what
+you want is the signals themselves, in a payload, that is the other application:
+[Surveillance](#surveillance).
+
+**There is no resource REST API and no search.** Reads or writes against `/fhir/evs/Patient`,
+`/fhir/evs/MedicationRequest` and the like are not supported, and no resource is stored here to
+read back.
+
+## The Prescriptor flow
+
+How the three [Prescriptor](#prescriptor) operations fit together: three calls, plus a browser
+round trip your system does not mediate. Nothing here applies to
+[Surveillance](#surveillance), which has no session and no flow — one request, one answer.
+
+```
+Host (XIS/HIS)                fhir-hub                 Prescriptor        G-Standaard
+     |                            |                         |                  |
+  1  |-- POST $…-session -------->|                         |                  |
+     |                            |-- resolve PRK|HPK ------------------------->|
+     |                            |<- PRK + GPK (+HPK) -------------------------|
+     |                            |-- open session -------->|                  |
+     |                            |<- sessionId + url ------|                  |
+     |<- Parameters{sessionId,url}-|                         |                  |
+     |                            |                         |                  |
+  2  |  redirect the user's browser to `url` ----------------->  (Prescriptor UI)
+     |                            |                         |                  |
+     |  user prescribes; Prescriptor redirects to endSessionUrl <---------------|
+     |                            |                         |                  |
+  3  |-- GET $session-result ---->|                         |                  |
+     |                            |-- request result ------>|  (session ends)  |
+     |<- Bundle -------------------|<- drugs + advice -------|                  |
+```
+
+1. **Open a session.** The host posts the patient context — demographics, allergies,
+   contra-indications, current medication, lab results — and receives a `sessionId` and a `url`.
+   Current medication is resolved against the G-Standaard *before* the session is opened, because
+   surveillance needs PRK and GPK together.
+2. **The care provider works in the Prescriptor UI** at that `url`. fhir-hub is not involved.
+   When finished, Prescriptor redirects the browser to the `endSessionUrl` the host supplied.
+3. **The host fetches the result** with the `sessionId` and receives a `Bundle` of
+   `MedicationRequest` (prescriptions) and `Communication` (patient advice) resources.
+
+**The ordering is not advisory.** A session id is only valid between step 1 and step 3; there is no
+store here to look one up in, and step 3 consumes it — a second `$session-result` for the same id is
+a 401. Persist the id when you receive it and the Bundle when you fetch it.
+
+Note where surveillance happens in this flow: at step 1, inside Prescriptor, on the medication list
+your system supplied — which is why an unresolvable drug code fails the whole call rather than
+being skipped. The signals are shown to the care provider in Prescriptor's interface and are not
+part of the step 3 Bundle. To receive the signals themselves, see [Surveillance](#surveillance).
+
 ## `GET /fhir/evs/metadata`
 
 The FHIR CapabilityStatement. Unauthenticated, so you can read it before your credentials are
@@ -123,7 +183,7 @@ curl -sS 'http://localhost:8080/fhir/evs/metadata?_format=json'
 ```
 
 **`software.version` is the release of this specification the deployment implements**, e.g.
-`0.1.0` — not a build number of the service, and not the FHIR version, which is `fhirVersion`.
+`0.2.0` — not a build number of the service, and not the FHIR version, which is `fhirVersion`.
 Read it before you start sending anything introduced in a later release: a parameter name this
 deployment does not know is a 400 rather than an ignored element, because the request profiles
 close the list of names. `implementation.description` names the same release alongside the
@@ -139,6 +199,11 @@ unauthenticated, like the statement that advertises them.
 The `OperationDefinition`s give you the parameter list; the [profiles](#profiles) give you what has
 to be true *inside* each parameter. Use the CapabilityStatement to confirm the operations and the
 FHIR version, and this document for the payloads.
+
+**This statement describes the Prescriptor base only.** [Surveillance](#surveillance) is a separate
+contract and has its own, at `GET /fhir/surveillance/metadata`, which lists `check-medication` and
+nothing else. Both report the same `software.version`, because both come from one release of this
+guide.
 
 ## `POST /fhir/evs/$formulary-session`
 
@@ -472,6 +537,217 @@ switch on which element is populated rather than inspecting the text yourself.
 }
 ```
 
+## Surveillance
+
+**Surveillance** answers the medication-surveillance question on its own: patient context and one
+or more proposed prescriptions in, the signals that fire out. No user interface, no session and no
+browser round trip — your system asks, and reads the answer in the response.
+
+```
+Base            /fhir/surveillance
+Interaction     one request, one answer
+Implemented     NO — a conformant request is answered with 501
+```
+
+| Operation | |
+| --- | --- |
+| [`POST /fhir/surveillance/$check-medication`](#post-fhirsurveillancecheck-medication) | Weigh prescriptions against a patient's context. **Published, not implemented** |
+| `GET /fhir/surveillance/metadata` | The CapabilityStatement of this base. Unauthenticated |
+
+> **Not implemented.** A request that conforms to the profile is answered with **501 Not
+> Implemented** and an `OperationOutcome`. **Nothing about a patient's medication may be concluded
+> from that response**, and nothing in your product should depend on this application yet. The
+> *request* contract is published and enforced so you can build and validate the payload — and
+> tell us it is the wrong shape — before the check behind it exists. Ask Digitalis which release
+> it is planned for.
+
+**How it differs from Prescriptor**, beyond the base and the shape of the call:
+
+| | Prescriptor | Surveillance |
+| --- | --- | --- |
+| Who decides | the care provider, in Prescriptor's UI | your system, from the signals returned |
+| Session | yes, with a browser round trip | none |
+| What comes back | prescriptions and patient advice | the signals themselves |
+| Prescription | written in Prescriptor | proposed by your system, not created here |
+| Today | works | 501 |
+
+Nothing is prescribed, stored or dispensed through this application: it weighs what you propose
+and answers. Which classes of signal it will report — interactions, duplicate therapy, allergy and
+contra-indication signals, and the G-Standaard's medisch-farmaceutische beslisregels are the
+candidates, being the checks Prescriptor already runs inside a session — is part of what is still
+being settled, along with the response payload. See
+[`POST /fhir/surveillance/$check-medication`](#post-fhirsurveillancecheck-medication).
+
+### Two bases, and what follows from it
+
+`/fhir/surveillance` is a **separate FHIR base**, not a path inside `/fhir/evs`. FHIR reserves the
+path space under a base for resource type names, so a second contract cannot be a segment within
+one: `/fhir/evs/surveillance/$check-medication` would parse as an operation on a resource type
+called `surveillance`, and there is no such type. Four consequences for you:
+
+- **Its own CapabilityStatement**, at `GET /fhir/surveillance/metadata`, unauthenticated like
+  [Prescriptor's](#get-fhirevsmetadata), listing `check-medication` and nothing else, and linking
+  its generated `OperationDefinition` at
+  `/fhir/surveillance/OperationDefinition/-s-check-medication`.
+- **The same credentials.** One `Authorization: Basic` header, the same practice id and licence key,
+  the same 401s — see [Authentication](#authentication).
+- **One version number for both contracts.** There is one guide and one release, stamped on every
+  artifact in it, so a release that only touches surveillance still moves the number
+  `GET /fhir/evs/metadata` reports. Which contract a change belongs to is named in the changelog.
+- **A path in neither base is a 404**, from the container rather than a FHIR `OperationOutcome`.
+  `/fhir/$check-medication` and `/fhir/surveillance/$formulary-session` are both misses.
+
+**What the two applications share** is not an accident and is most of the interface: the same
+credentials ([Authentication](#authentication)), the same content types and error shape
+([Conventions](#conventions), [Errors](#errors)), the same profiles for patient, current
+medication, allergies, contra-indications and lab results ([Profiles](#profiles)), the same
+[Code systems](#code-systems) and the same [Lab determinations](#lab-determinations). A system that
+already opens Prescriptor sessions has no new payload to learn — only a new address to post to.
+
+## `POST /fhir/surveillance/$check-medication`
+
+The one operation of the [Surveillance](#surveillance) application: given a patient's context and
+one or more proposed prescriptions, which signals fire? No browser round trip and no session — one
+request, one answer. Read [Surveillance](#surveillance) first for what the application is and how
+it differs from [Prescriptor](#prescriptor).
+
+> **Published, not implemented.** A request that conforms to the profile below is answered with
+> **501 Not Implemented** and an `OperationOutcome`. **Nothing about a patient's medication may be
+> concluded from that response**, and nothing in your product should depend on this endpoint yet.
+>
+> What is published is the **request** contract, and it is enforced: a malformed body still gets a
+> 400 naming what is wrong with it, and a conformant one gets the 501. So you can build the payload,
+> validate it, and tell us it is the wrong shape *before* the check behind it exists. Ask Digitalis
+> which release it is planned for.
+>
+> The 501 is deliberate and will not be softened into an empty result. An empty list of findings
+> cannot be told apart from a genuine all-clear, and a prescriber who sent a medication list and saw
+> no signal would read it as one — the same false negative that makes an unresolvable drug code a
+> 400 rather than a dropped drug.
+
+### `$check-medication` input
+
+A `Parameters` resource. The cardinalities below are enforced today; anything outside them is a 400
+that names the element.
+
+| Parameter | Card. | Type | Notes |
+| --- | --- | --- | --- |
+| `patient` | 1..1 | `Patient` | `gender` and `birthDate`, exactly as for a session |
+| `xisId` | 1..1 | `string` | Your system id, non-blank |
+| `xisVersion` | 1..1 | `string` | Your release version, non-blank |
+| `prescription` | 0..* | `MedicationRequest` | The prescriptions to check. **Repeatable here**, where a session takes one |
+| `medicationStatement` | 0..* | `MedicationStatement` | The patient's current medication, in PRK or HPK |
+| `allergyIntolerance` | 0..* | `AllergyIntolerance` | `code.coding` in SSK, SNK or OGGrp |
+| `condition` | 0..* | `Condition` | `code.coding` in CICode or ICPC |
+| `observation` | 0..* | `Observation` | A LOINC-coded lab determination — see [Lab determinations](#lab-determinations) |
+
+**Every resource is one you already build.** `patient`, `medicationStatement`,
+`allergyIntolerance`, `condition` and `observation` bind the same profiles as the session
+operations, and `prescription` binds the same `fhirhub-PrescriptionInput` that `$createrx-session`
+takes — so a prescription can be checked here and then handed to a session without being reshaped.
+Everything the session pages say about each of them applies unchanged, including that an
+unresolvable drug code will fail the whole request rather than be skipped.
+
+**At least one `prescription` or one `medicationStatement` is required.** Not both — either. A
+request carrying neither has nothing to evaluate, and answering it would mean reporting "no
+signals" about a patient whose medication never arrived. This is the invariant
+`fhirhub-something-to-check`.
+
+**`prescription` is repeatable** because a proposed regimen is weighed as a whole: two new drugs can
+interact with each other and with nothing the patient already takes.
+
+**There is no `endSessionUrl` and no `reason`.** Nothing is launched, so there is no browser to
+return; and the reason for encounter drives a formulary lookup rather than surveillance. Send either
+and the closed slicing makes it a 400.
+
+```jsonc
+POST /fhir/surveillance/$check-medication
+Content-Type: application/fhir+json
+Authorization: Basic ...
+
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    { "name": "patient", "resource": {
+        "resourceType": "Patient", "gender": "female", "birthDate": "1980-01-01" } },
+    { "name": "xisId",      "valueString": "xis-001" },
+    { "name": "xisVersion", "valueString": "1.0" },
+
+    { "name": "prescription", "resource": {
+        "resourceType": "MedicationRequest",
+        "status": "active",
+        "intent": "order",
+        "subject": { "extension": [ {
+          "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+          "valueCode": "unknown" } ] },
+        "medicationCodeableConcept": { "coding": [ {
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.10", "code": "18996" } ] },
+        "dosageInstruction": [ { "extension": [ {
+          "url": "http://spec.digitalis.nl/fhir/StructureDefinition/ext-Dosage.CodedDirections",
+          "valueString": "3-4D1S; gedurende max. 1 maand" } ] } ] } },
+
+    { "name": "medicationStatement", "resource": {
+        "resourceType": "MedicationStatement",
+        "status": "active",
+        "subject": { "extension": [ {
+          "url": "http://hl7.org/fhir/StructureDefinition/data-absent-reason",
+          "valueCode": "unknown" } ] },
+        "medicationCodeableConcept": { "coding": [ {
+          "system": "urn:oid:2.16.840.1.113883.2.4.4.10", "code": "18996" } ] } } }
+  ]
+}
+```
+
+Allergies, contra-indications and lab results are omitted from the example for length; they are
+identical to the session payloads.
+
+### What you get back today
+
+`HTTP/1.1 501 Not Implemented`, with:
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [ {
+    "severity": "error",
+    "code": "not-supported",
+    "diagnostics": "Medication surveillance is published but not yet implemented: this request conforms to http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-SurveillanceInput, and the check behind it is not wired up. No conclusion about this patient's medication may be drawn from this response. Contact Digitalis for the release it is planned for."
+  } ]
+}
+```
+
+Branch on the status and on `issue.code` (`not-supported`), never on the text — see
+[Errors](#errors).
+
+### What it will return
+
+A `Bundle` of `DetectedIssue` resources, one per signal, each naming the drugs involved and
+carrying the rule's own text.
+
+**No response profile is published, and that is deliberate.** A `StructureDefinition` with nothing
+behind it is a promise this interface cannot keep, and it would invite you to build against a shape
+of which not one instance has ever been produced. Three things are open, and each can change the
+payload:
+
+- **The severity grades**, and how they map onto `DetectedIssue.severity`, which offers only
+  `high`, `moderate` and `low`.
+- **How a rule's own text and recommended action come across**, given that a
+  medisch-farmaceutische beslisregel carries both, in Dutch, written for a prescriber.
+- **Whether a partial answer is ever permitted.** The session contract fails closed: one
+  unresolvable code fails the request. A check that could evaluate thirty-nine rules of forty has
+  to do the same or say so in the payload, and that is a clinical decision rather than an
+  engineering one.
+
+### How you will know it is live
+
+Not from `metadata`: the CapabilityStatement lists `check-medication` today and will list it
+afterwards too — an unimplemented operation that stayed invisible could not be built against, which
+is the whole point of publishing it. The endpoint simply stops answering 501.
+
+The announcement is the changelog and the release number in `software.version`, together with a
+response profile appearing under [Profiles](#profiles). Ask Digitalis to tell you directly rather
+than watching for it.
+
 ## Lab determinations
 
 Lab values are coded in **LOINC** and in nothing else, and the accepted codes are a closed list.
@@ -640,7 +916,7 @@ was on:
 
 ```
 None of the codings provided are in the value set 'ICPC-1 NL'
-(http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl|0.1.0), and a coding from this value set is
+(http://spec.digitalis.nl/fhir/ValueSet/icpc-1-nl|0.2.0), and a coding from this value set is
 required) (codes = ICPC#A01)
 ```
 
@@ -697,6 +973,7 @@ all of them. No response in this API is un-parseable by a FHIR library.
 | Unknown or already-consumed session id (`No data found for the session ID`) | 401 |
 | Invalid request | 400 |
 | Prescriptor unreachable (`Could not reach Prescriptor`) or unparseable | 500 |
+| `$check-medication` called with a conformant body — the operation is published but not implemented | 501 |
 
 A 400 comes from one of three places. Knowing which saves time when you read `diagnostics`, and
 each is quoted as returned so you can recognise it while building.
@@ -751,7 +1028,7 @@ whoever has to act on it rather than matching on the text.
     "details": { "coding": [ {
       "system": "http://hl7.org/fhir/java-core-messageId",
       "code": "Validation_VAL_Profile_Minimum_SLICE" } ] },
-    "diagnostics": "Slice 'Parameters.parameter:endSessionUrl': a matching slice is required, but not found (from http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput|0.1.0). Note that other slices are allowed in addition to this required slice",
+    "diagnostics": "Slice 'Parameters.parameter:endSessionUrl': a matching slice is required, but not found (from http://spec.digitalis.nl/fhir/StructureDefinition/fhirhub-FormularySessionInput|0.2.0). Note that other slices are allowed in addition to this required slice",
     "location": [ "Parameters", "Line[1] Col[894]" ],
     "expression": [ "Parameters" ]
   } ]
@@ -817,7 +1094,7 @@ not in the running service.
   `Observation.category` this interface neither sends nor reads, and `nl-core-MedicationUse2` is
   not published in the nl-core package. Ask Digitalis before building anything that depends on
   nl-core conformance.
-- **The artifacts are `draft`, at version `0.1.0`.** The change policy is published, and while the
+- **The artifacts are `draft`, at version `0.2.0`.** The change policy is published, and while the
   status is `draft` it allows a breaking change at a minor version — see *Versioning and change
   policy* in the published guide. Agree with Digitalis how you want to be told about a change
   before you go live.
@@ -825,5 +1102,10 @@ not in the running service.
   *code* — only the `system` it came from. A wrong code inside a system this interface routes
   reaches Prescriptor, and comes back as a 400 from the medication lookup rather than as a
   validation error.
+
+- **Medication surveillance is published and not implemented.** `$check-medication` answers 501,
+  its request profile is enforced and no response profile exists. Build against it to check your
+  payload; do not ship a feature that depends on it. See
+  [`POST /fhir/surveillance/$check-medication`](#post-fhirsurveillancecheck-medication).
 
 Questions, or a case this document does not cover: contact Digitalis.
